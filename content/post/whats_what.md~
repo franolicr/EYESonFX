@@ -108,7 +108,11 @@ m$o$cmnts <- list(
     6, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
     7, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
     8, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
-    10, m$p$clr$rd, 120, -50, "3. European Monetary Union leads to large reductions in Euro pairs",
+    10, m$p$clr$rd, 120, -40, "3. European Monetary Union leads to large reductions in Euro pairs",
+    11, m$p$clr$rd, 120, -40, "3. European Monetary Union leads to large reductions in Euro pairs",
+    12, m$p$clr$rd, 120, -40, "3. European Monetary Union leads to large reductions in Euro pairs",
+    11, m$p$clr$grn, 110, -150, "3. ... but there is growth\n in several other pairs",
+    12, m$p$clr$grn, 110, -150, "3. ... but there is growth\n in several other pairs",
     14, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
     15, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
     16, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
@@ -120,12 +124,14 @@ m$o$cmnts <- list(
     22, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
     23, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
     24, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
-    25, m$p$clr$rd, 90, -500, "5. Many pairs decline in 2016",
-    26, m$p$clr$grn, 90, -500, "6. ... but Chinese Yuan (CNY) \n and many Asian pairs \n continue to grow",
-    27, m$p$clr$grn, 90, -500, "6. ... but Chinese Yuan (CNY) \n and many Asian pairs \n continue to grow",
-    28, m$p$clr$grn, 90, -500, "7. Return to growth in 2019\n for most but JPY",
-    29, m$p$clr$grn, 100, -500, "7. Return to growth in 2019\n for most but JPY",
-    30, "black", 100, -500, "8. Dollar still dominates in \n 2019 as it did in 1992")
+    25, m$p$clr$rd, 215, -35, "5. Many large pairs\ndecline in 2016",
+    26, m$p$clr$rd, 215, -35, "5. Many large pairs\n decline in 2016",
+    27, m$p$clr$rd, 215, -35, "5. Many large pairs\ndecline in 2016",
+    26, m$p$clr$grn, 90, -470, "5. ... but Chinese Yuan (CNY) \n and many Asian pairs \n continue to grow",
+    27, m$p$clr$grn, 90, -470, "5. ... but Chinese Yuan (CNY) \n and many Asian pairs \n continue to grow",
+    28, m$p$clr$grn, 90, -500, "6. Return to growth in 2019\n for most but JPY",
+    29, m$p$clr$grn, 100, -500, "6. Return to growth in 2019\n for most but JPY",
+    30, "black", 100, -500, "7. Dollar still dominates in \n 2019 as it did in 1992")
 
 
 m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
@@ -139,7 +145,7 @@ m$o$yrs <- m$o$bis[ !is.na( yr), .N, yr]
 saveGIF({ ani.options(interval = 2, nmax = 75)
 #saveVideo({ ani.options(interval = 1, nmax = 75)
 
-#for( j in m$o$bis[ yr== 1998  & yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
+#for( j in m$o$bis[ yr== 2016  & yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
 for( j in m$o$bis[ yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
     print(
       ggplot( data= m$o$bis[ frm== j]) +

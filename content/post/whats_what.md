@@ -102,17 +102,17 @@ m$o$bis[ , y:= n %/% ( m$p$unt_sz * round( wdth / m$p$unt_sz, 0)) * m$p$unt_sz ]
 
 # Commentary
 m$o$cmnts <- list(
-    3, "black", 75, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD",
-    4, "black", 75, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD",
+    3, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD",
+    4, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD",
     5, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
     6, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
     7, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
     8, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
-    10, m$p$clr$rd, 120, -40, "3. European Monetary Union leads to large reductions in Euro pairs",
-    11, m$p$clr$rd, 120, -40, "3. European Monetary Union leads to large reductions in Euro pairs",
-    12, m$p$clr$rd, 120, -40, "3. European Monetary Union leads to large reductions in Euro pairs",
-    11, m$p$clr$grn, 110, -150, "3. ... but there is growth\n in several other pairs",
-    12, m$p$clr$grn, 110, -150, "3. ... but there is growth\n in several other pairs",
+    10, m$p$clr$rd, 120, -42, "3. European Monetary Union leads to\nlarge reductions in Euro pairs",
+    11, m$p$clr$rd, 120, -42, "3. European Monetary Union leads to\nlarge reductions in Euro pairs",
+    12, m$p$clr$rd, 120, -42, "3. European Monetary Union leads to\nlarge reductions in Euro pairs",
+    11, m$p$clr$grn, 115, -145, "3. ... but there is\ngrowth in several\nother pairs",
+    12, m$p$clr$grn, 115, -145, "3. ... but there is\ngrowth in several\nother pairs",
     14, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
     15, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
     16, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
@@ -124,14 +124,15 @@ m$o$cmnts <- list(
     22, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
     23, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
     24, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
-    25, m$p$clr$rd, 215, -35, "5. Many large pairs\ndecline in 2016",
-    26, m$p$clr$rd, 215, -35, "5. Many large pairs\n decline in 2016",
-    27, m$p$clr$rd, 215, -35, "5. Many large pairs\ndecline in 2016",
-    26, m$p$clr$grn, 90, -470, "5. ... but Chinese Yuan (CNY) \n and many Asian pairs \n continue to grow",
-    27, m$p$clr$grn, 90, -470, "5. ... but Chinese Yuan (CNY) \n and many Asian pairs \n continue to grow",
-    28, m$p$clr$grn, 90, -500, "6. Return to growth in 2019\n for most but JPY",
-    29, m$p$clr$grn, 100, -500, "6. Return to growth in 2019\n for most but JPY",
-    30, "black", 100, -500, "7. Dollar still dominates in \n 2019 as it did in 1992")
+    25, m$p$clr$rd, 210, -35, "5. Many large pairs\ndecline in 2016",
+    26, m$p$clr$rd, 210, -35, "5. Many large pairs\ndecline in 2016",
+    27, m$p$clr$rd, 210, -35, "5. Many large pairs\ndecline in 2016",
+    26, m$p$clr$grn, 90, -470, "5. ... but Chinese Yuan \n(CNY) and many Asian\npairs continue to grow",
+    27, m$p$clr$grn, 90, -470, "5. ... but Chinese Yuan \n(CNY) and many Asian\npairs continue to grow",
+    28, m$p$clr$grn, 100, -500, "6. Return to growth in\n2019 for most but JPY",
+    29, m$p$clr$grn, 100, -500, "6. Return to growth in\n2019 for most but JPY",
+    30, m$p$clr$grn, 100, -500, "6. Return to growth in\n2019 for most but JPY",
+    30, "black", 92, -600, "7. Dollar still dominates in\n2019 as it did in 1992")
 
 
 m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
@@ -217,7 +218,7 @@ for( j in m$o$bis[ yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm
       # commentary
       geom_label( data= m$o$cmnts[ frm== j],
 	     mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
-	     alpha= 1.0, colour= "white", size= 5) +
+	     alpha= 1.0, colour= "white", size= 6, fontface= "bold") +
       scale_x_continuous( limits= c( -26, 260), expand= expansion(mult = 0, add = 0)) +
       scale_y_continuous( limits= c( -665, 40), expand= expansion(mult = 0, add = 0)) +
 #      theme_grey())
