@@ -9,7 +9,7 @@ draft = false
 
 Five key facts about the currencies traded in the FX market using data from the BIS surveys.
 
-{{< figure src="Whats_what.png" >}}
+{{< figure src="/ox-hugo/Whats_what.gif" >}}
 
 ```R
 m$i$bis <- fread( "/Dnk/Srcs/BIS/Out/Crcny_Prs.csv")
