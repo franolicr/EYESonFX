@@ -14,7 +14,7 @@
   weight = 20
 
 [[main]]
-  name = "Projects"
+  name = "Blog"
   url = "#projects"
   weight = 30
 
@@ -22,6 +22,7 @@
   name = "Publications"
   url = "#featured"
   weight = 40
+
 
 [[main]]
   name = "Contact"
@@ -34,3 +35,49 @@
 #    name = "CV"
 #    url = "files/cv.pdf"
 #    weight = 70
+
+
+[[main]]
+  identifier= "FX_Questions"
+  name = "FX Questions"
+  weight = 80
+
+[[main]]
+  name = "Who?"
+  parent= "FX_Questions"
+  weight = 10
+
+[[main]]
+  name = "Why?"
+  parent= "FX_Questions"
+  weight = 10
+
+[[main]]
+  name = "What?"
+  parent= "FX_Questions"
+  weight = 20
+
+[[main]]
+  name = "Where?"
+  parent= "FX_Questions"
+  weight = 30
+
+[[main]]
+  name = "When?"
+  parent= "FX_Questions"
+  weight = 30
+
+[[main]]
+  name = "How?"
+  parent= "FX_Questions"
+  weight = 30
+
+[[main]]
+  identifier= "FX_Reference"
+  name = "References"
+  weight = 80
+
+[[main]]
+  parent= "FX_Reference"
+  name = "Books"
+  weight = 10
