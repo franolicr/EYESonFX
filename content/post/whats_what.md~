@@ -80,22 +80,16 @@ m$o$bis <- m$o$bis[ prsnt== TRUE | prvs_prsnt== TRUE,
       sgn:= as.numeric( prsnt)- as.numeric( prvs_prsnt)]
 
 
-# Repeat each year 8 times: first four times to highlight losses, next three time to highlight gaina
-# and last time the final position
-m$o$bis <- m$o$bis[ rep( 1:.N, each= 8), cbind( i= 1:8, .SD)][ order( yr, sgn),
-							    cbind( frm= i + 8* ( .GRP- 1), .SD), yr]
+# Repeat each year three times: first time to highlight losses, next to highlight gains and last the final position
+m$o$bis <- m$o$bis[ rep( 1:.N, each= 3), cbind( i= 1:3, .SD)][ order( yr, sgn),
+							    cbind( frm= i + 3* ( .GRP- 1), .SD), yr]
 
 m$o$bis[ , clr:= fifelse( sgn== -1, m$p$clr$rd, fifelse( sgn== 0, m$p$clr$drk_gry, m$p$clr$grn))]
 
 m$o$bis <- rbindlist( list(
     m$o$bis[ i== 1 & sgn != 1],
-    m$o$bis[ i== 2 & sgn == 0],
-    m$o$bis[ i== 3 & sgn != 1],
-    m$o$bis[ i== 4 & sgn == 0],
-    m$o$bis[ i== 5 & sgn != -1],
-    m$o$bis[ i== 6 & sgn == 0],
-    m$o$bis[ i== 7 & sgn != -1],
-    m$o$bis[ i== 8 & sgn != -1][, clr:= m$p$clr$drk_gry]))
+    m$o$bis[ i== 2 & sgn != -1],
+    m$o$bis[ i== 3 & sgn != -1][, clr:= m$p$clr$drk_gry]))
 
 setkeyv( m$o$bis, "crncy2")
 m$o$bis <- m$o$bis[ m$o$crncy_x]
@@ -108,22 +102,45 @@ m$o$bis[ , y:= n %/% ( m$p$unt_sz * round( wdth / m$p$unt_sz, 0)) * m$p$unt_sz ]
 
 # Commentary
 m$o$cmnts <- list(
-    72, 20, -30, "",
-    72, 50, -50, "")
+    3, "black", 75, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD",
+    4, "black", 75, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD",
+    5, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
+    6, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
+    7, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
+    8, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
+    10, m$p$clr$rd, 120, -50, "3. European Monetary Union leads to large reductions in Euro pairs",
+    14, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    15, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    16, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    17, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    18, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    19, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    20, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    21, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    22, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    23, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    24, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+    25, m$p$clr$rd, 90, -500, "5. Many pairs decline in 2016",
+    26, m$p$clr$grn, 90, -500, "6. ... but Chinese Yuan (CNY) \n and many Asian pairs \n continue to grow",
+    27, m$p$clr$grn, 90, -500, "6. ... but Chinese Yuan (CNY) \n and many Asian pairs \n continue to grow",
+    28, m$p$clr$grn, 90, -500, "7. Return to growth in 2019\n for most but JPY",
+    29, m$p$clr$grn, 100, -500, "7. Return to growth in 2019\n for most but JPY",
+    30, "black", 100, -500, "8. Dollar still dominates in \n 2019 as it did in 1992")
 
-m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 4, byrow= TRUE,
-				 dimnames= list( NULL, c( "frm", "x", "y", "cmnt"))))
+
+m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
+				 dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
 m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
 
 # Years
 m$o$yrs <- m$o$bis[ !is.na( yr), .N, yr]
 
 # Let's plot it!
-saveGIF({ ani.options(interval = 1, nmax = 75)
+saveGIF({ ani.options(interval = 2, nmax = 75)
 #saveVideo({ ani.options(interval = 1, nmax = 75)
 
-    for( j in m$o$bis[ yr== 1998  & yr!= 2022 & !( yr== 1992 & i < 8), .N, frm][ order( frm), frm]){
-#for( j in m$o$bis[ yr!= 2022 & !( yr== 1992 & i < 8), .N, frm][ order( frm), frm]){
+#for( j in m$o$bis[ yr== 1998  & yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
+for( j in m$o$bis[ yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
     print(
       ggplot( data= m$o$bis[ frm== j]) +
       # years -  background tiles
@@ -156,44 +173,53 @@ saveGIF({ ani.options(interval = 1, nmax = 75)
 		   colour= m$p$clr$lght_gry, size= 0.5) +
       # gain/loss label
       geom_label( data= function( x) x[ , .N, .( yr, i)][
-				      , .( lbl= ifelse(  i < 4, "loss",
-						ifelse( i < 8, "gain", "final")),
-					  fll= ifelse(  i < 4, m$p$clr$rd,
-						       ifelse( i < 7, m$p$clr$grn, m$p$clr$drk_gry)))],
+				       , .( lbl= ifelse(  i <= 1, "loss",
+						 ifelse( i <= 2, "gain", "final")),
+					   fll= ifelse(  i <= 1, m$p$clr$rd,
+						ifelse( i <= 2, m$p$clr$grn, m$p$clr$drk_gry)))],
 		 mapping= aes( x= -13, y= 9, label= lbl, fill= I( fll)),
 		 fontface= "bold", colour= "white", size= 6, label.size= unit( 1, "mm"),
 		 label.padding= unit( 0.25, "lines"),
 		 hjust= 0.5, vjust= 0.5) +
       # currencies - across top
-      geom_text( data= m$o$bis[ yr== 2019,
-			   .( crncy_x= max( crncy_x)+ min( x)),
+      geom_text( data= function( x)
+	  x[ , .( crncy_x= max( crncy_x)+ min( x), sgn= mean( sgn), i= max( i)), .( crncy2)][
+	     ,.( crncy_x, clr= fifelse( sgn== 0 | i>= 3, "black", fifelse( sgn< 0, m$p$clr$rd, m$p$clr$grn)),
+		fnt= fifelse( mean(sgn)== 0 | i>= 3, "plain", "bold")),
 			   .( crncy2)],
-	    mapping= aes( x= crncy_x, y= 1, label= crncy2),
-	    hjust= 0, vjust= 0, size= 7) +
+	    mapping= aes( x= crncy_x, y= 1, label= crncy2, colour= I( clr), fontface= I( fnt)),
+	    hjust= 0, vjust= 0, size= 6) +
       # currencies - down the side
       geom_text( data= function( x)
 	  x[ , .( n, mx= max( n), y= crncy_y + min( y) + m$p$unt_sz,
-		 clr= fifelse( sgn== 0 | i== 8, "black", clr),
-				    fnt= fifelse( sgn== 0 | i== 8, "plain", "bold")),
+		 clr= fifelse( sgn== 0 | i>= 3, "black", clr),
+		 fnt= fifelse( sgn== 0 | i>= 3, "plain", "bold")),
 	    .( crncy1)][ n== mx],
 	  mapping= aes( y= -y, label= crncy1, colour= I( clr), fontface= I( fnt)),
-	  x= 0, hjust= 1, vjust= 0.5, size= 7) +
+	  x= -25, hjust= 0, vjust= 0.5, size= 6) +
       # dots
       geom_point( mapping= aes( x= crncy_x + x, y= -crncy_y -y, colour= I( clr)),
-		 alpha= 1, size= 3) +
+		 alpha= 1, size= 2.5) +
+      # key dot
+      annotate( geom= "point", x= 5, y= -659, size= 2.5, colour= m$p$clr$drk_gry) +
+      # key text
+      annotate( geom= "text", x= 7, y= -663, hjust= 0, vjust= 0, size= 5,
+	       label= " = 5 billion USD") +
+      # source
+      annotate( geom= "text", x= 259, y= -663, hjust= 1, vjust= 0, size= 5,
+	       label= "Source: BIS FX surveys", colour= m$p$clr$drk_gry) +
+      # commentary
+      geom_label( data= m$o$cmnts[ frm== j],
+	     mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
+	     alpha= 1.0, colour= "white", size= 5) +
+      scale_x_continuous( limits= c( -26, 260), expand= expansion(mult = 0, add = 0)) +
+      scale_y_continuous( limits= c( -665, 40), expand= expansion(mult = 0, add = 0)) +
+#      theme_grey())
+      theme_void())
 #    geom_label( data= function( x) x[ n==0],
 #	      mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
 #	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
-				      #	      hjust= 0, vjust= 0.5 ) +
-      geom_label( data= m$o$cmnts[ frm== j],
-	     mapping= aes( x= x, y= y, label= cmnt),
-	     alpha= 0.7) + scale_x_continuous( limits= c( -26, 260), expand= expansion(mult = 0, add = 0)) +
-scale_y_continuous( limits= c( -665, 40), expand= expansion(mult = 0, add = 0)) +
-annotate( geom= "text", x= 259, y= -663, hjust= 1, vjust= 0, size= 5,
-       label= "Source: Bank for International Settlements (BIS)", colour= m$p$clr$drk_gry) +
-#      annotate( geom= "text", x= 50, y= -300, label= paste0( "frame ", j), size= 20) +
-#      theme_grey())
-     theme_void())
+#	      hjust= 0, vjust= 0.5 ) +
 }}
 , movie.name = "Whats_what.gif", ani.width = 500, ani.height = 800)
 #, movie.name = "Whats_what.mp4", ani.width = 750, ani.height = 1200)
