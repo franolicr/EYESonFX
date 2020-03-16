@@ -120,11 +120,13 @@ m$o$yrs <- m$o$bis[ !is.na( yr), .N, yr]
 
 # Let's plot it!
 saveGIF({ ani.options(interval = 1, nmax = 75)
+#saveVideo({ ani.options(interval = 1, nmax = 75)
 
 #for( j in m$o$bis[ yr== 1998  & yr!= 2022 & !( yr== 1992 & i < 8), .N, frm][ order( frm), frm]){
 for( j in m$o$bis[ yr!= 2022 & !( yr== 1992 & i < 8), .N, frm][ order( frm), frm]){
     print(
       ggplot( data= m$o$bis[ frm== j]) +
+      # years -  background tiles
       geom_tile( data= function( x)
 	  x[ , .N, yr][ m$o$yrs, on= "yr"][
 	    , .( yr, n= seq_along( yr),
@@ -132,61 +134,69 @@ for( j in m$o$bis[ yr!= 2022 & !( yr== 1992 & i < 8), .N, frm][ order( frm), frm
 	      clr= fifelse( is.na( N), m$p$clr$drk_gry, "white"))],
 	  mapping= aes( x= -36 + n * 22, y= 29, colour= I( clr), fill= I( fll)),
 	  width= 22, height= 20) +
+      # years - text
       geom_text( data= function( x)
 	  x[ , .N, yr][ m$o$yrs, on= "yr"][
 	    , .( yr, n= seq_along( yr),
 		fll= fifelse( is.na( N), m$p$clr$lght_gry, "white"),
 	      clr= fifelse( is.na( N), m$p$clr$drk_gry, "black"))],
 	  mapping= aes( x= -36 + n * 22, y= 29, label= yr, colour= I( clr)),
-	  size= 7) +
+	  size= 5) +
+      # logo
+      annotation_custom( m$p$eyesonfx_lg, xmin= 198, xmax=260, ymin=22, ymax=40) +
+      # vertical lines
       geom_segment( data= m$o$crncy_x,
 		    mapping= aes( x= crncy_x - 4, xend= crncy_x - 4,
 				 y= 15, yend= -655),
 		   colour= m$p$clr$lght_gry, size= 0.5) +
+      # horizontal lines
       geom_segment( data= m$o$crncy_y,
 		    mapping= aes( x= -25, xend= +Inf,
 				 y= -crncy_y + m$p$unt_sz, yend= -crncy_y + m$p$unt_sz),
 		   colour= m$p$clr$lght_gry, size= 0.5) +
+      # gain/loss label
       geom_label( data= function( x) x[ , .N, .( yr, i)][
 				      , .( lbl= ifelse(  i < 4, "loss",
 						ifelse( i < 8, "gain", "final")),
 					  fll= ifelse(  i < 4, m$p$clr$rd,
 						       ifelse( i < 7, m$p$clr$grn, m$p$clr$drk_gry)))],
 		 mapping= aes( x= -13, y= 9, label= lbl, fill= I( fll)),
-		 fontface= "bold", colour= "white", size= 9, label.size= unit( 1, "mm"),
+		 fontface= "bold", colour= "white", size= 6, label.size= unit( 1, "mm"),
 		 label.padding= unit( 0.25, "lines"),
 		 hjust= 0.5, vjust= 0.5) +
-    geom_point( mapping= aes( x= crncy_x + x, y= -crncy_y -y, colour= I( clr)),
-	     alpha= 1, size= 1 * m$p$unt_sz)+
-    geom_label( data= function( x) x[ n==0],
-	    mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
-	    alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
-	    hjust= 0, vjust= 0.5 ) +
-    geom_text( data= m$o$bis[ yr== 2019,
+      # currencies - across top
+      geom_text( data= m$o$bis[ yr== 2019,
 			   .( crncy_x= max( crncy_x)+ min( x)),
 			   .( crncy2)],
 	    mapping= aes( x= crncy_x, y= 1, label= crncy2),
-	    hjust= 0, vjust= 0, size= 10) +
-    geom_text( data= function( x) x[ ,
-				  .( n, mx= max( n), y= crncy_y + min( y) + m$p$unt_sz,
-				    clr= fifelse( sgn== 0 | i== 8, "black", clr),
+	    hjust= 0, vjust= 0, size= 6) +
+      # currencies - down the side
+      geom_text( data= function( x)
+	  x[ , .( n, mx= max( n), y= crncy_y + min( y) + m$p$unt_sz,
+		 clr= fifelse( sgn== 0 | i== 8, "black", clr),
 				    fnt= fifelse( sgn== 0 | i== 8, "plain", "bold")),
-			   .( crncy1)][ n== mx],
-	    mapping= aes( y= -y, label= crncy1, colour= I( clr), fontface= I( fnt)),
-	    x= 0, hjust= 1, vjust= 0.5, size= 10) +
-     geom_label( data= m$o$cmnts[ frm== j],
+	    .( crncy1)][ n== mx],
+	  mapping= aes( y= -y, label= crncy1, colour= I( clr), fontface= I( fnt)),
+	  x= 0, hjust= 1, vjust= 0.5, size= 6) +
+      # dots
+      geom_point( mapping= aes( x= crncy_x + x, y= -crncy_y -y, colour= I( clr)),
+		 alpha= 1, size= 3) +
+#    geom_label( data= function( x) x[ n==0],
+#	      mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
+#	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
+				      #	      hjust= 0, vjust= 0.5 ) +
+      geom_label( data= m$o$cmnts[ frm== j],
 	     mapping= aes( x= x, y= y, label= cmnt),
-	     alpha= 0.7) +
-scale_x_continuous( limits= c( -26, 260), expand= expansion(mult = 0, add = 0)) +
+	     alpha= 0.7) + scale_x_continuous( limits= c( -26, 260), expand= expansion(mult = 0, add = 0)) +
 scale_y_continuous( limits= c( -665, 40), expand= expansion(mult = 0, add = 0)) +
-annotate( geom= "text", x= 259, y= -663, hjust= 1, vjust= 0, size= 7,
+annotate( geom= "text", x= 259, y= -663, hjust= 1, vjust= 0, size= 5,
        label= "Source: Bank for International Settlements (BIS)", colour= m$p$clr$drk_gry) +
-#annotation_custom( m$p$eyesonfx_lg, xmin= 198, xmax=260, ymin=22, ymax=40) +
 #      annotate( geom= "text", x= 50, y= -300, label= paste0( "frame ", j), size= 20) +
 #      theme_grey())
      theme_void())
 }}
-, movie.name = "Whats_what.gif", ani.width = 750, ani.height = 1200)
+, movie.name = "Whats_what.gif", ani.width = 500, ani.height = 800)
+#, movie.name = "Whats_what.mp4", ani.width = 750, ani.height = 1200)
 ```
 
 <!--more-->

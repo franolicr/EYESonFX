@@ -1,6 +1,7 @@
 #+DRAFT: true
 #+HUGO_SECTION: post
 #+HUGO_BASE_DIR: ~/eyesonfx
+#+EXPORT_HUGO_BUNDLE: page-bundle-images-in-same-dir
 #+PROPERTY: header-args:R  :session *R* :results replace :tangle yes :eval no
 * Setup
 #+BEGIN_SRC R :eval yes
@@ -77,10 +78,9 @@ Concentration within the FX market
 :PROPERTIES:
 :EXPORT_FILE_NAME: whats_what
 :END:
-
-[[whats_what.png]]
- 
 Five key facts about the currencies traded in the FX market using data from the BIS surveys. 
+
+[[file:chart.png]]
 
 #+BEGIN_SRC R
   m$i$bis <- fread( "/Dnk/Srcs/BIS/Out/Crcny_Prs.csv")
@@ -281,6 +281,8 @@ The market has grown every period, sa
 :PROPERTIES:
 :EXPORT_FILE_NAME: ox-hugo-1
 :END:
+
+[[file:/Users/rfranolic/eyesonfx/assets/images/The_Tiger_That_Isn't.jpg]]
 #+BEGIN_SRC R
   library(VennDiagram)
 
@@ -423,7 +425,7 @@ The market has grown every period, sa
 	  stop("Unexpected parameter length for 'cat.fontfamily'")
       }
       if (!(class(cat.just) == "list" & length(cat.just) == 4 & 
-	  length(cat.just[[1]]) == 2 & length(cat.just[[2]]) == 
+	  length(cat.just[[G1]]) == 2 & length(cat.just[[2]]) == 
 	  2 & length(cat.just[[3]]) == 2 & length(cat.just[[4]]) == 
 	  2)) {
 	  flog.error("Unexpected parameter format for 'cat.just'", 
