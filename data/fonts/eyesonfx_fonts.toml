@@ -1,0 +1,11 @@
+# Font style metadata
+name = "eyesonfx_fonts"
+
+# Optional Google font URL
+google_fonts = "Quantico:400,700|Merriweather:400,400italic"
+
+# Font families
+heading_font = "Quantico"
+body_font = "Merriweather"
+nav_font = "Quantico"
+mono_font = "Roboto Mono"
