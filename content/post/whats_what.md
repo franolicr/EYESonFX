@@ -7,7 +7,7 @@ categories = ["What"]
 draft = false
 +++
 
-Five key facts about the currencies traded in the FX market using data from the BIS surveys.
+Seven key facts about the currencies traded in the FX market using data from the BIS surveys.
 
 {{< figure src="/ox-hugo/Whats_what.gif" >}}
 
