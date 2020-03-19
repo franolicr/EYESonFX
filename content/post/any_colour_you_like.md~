@@ -1,6 +1,6 @@
 +++
 title = "The colour of money"
-author = ["Robert Franolic"]
+author = ["Rob Franolic"]
 tags = ["DataViz"]
 draft = false
 +++

@@ -1,5 +1,5 @@
 +++
 title = "When is FX traded?"
-author = ["Robert Franolic"]
+author = ["Rob Franolic"]
 draft = false
 +++

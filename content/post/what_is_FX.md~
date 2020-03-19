@@ -1,6 +1,6 @@
 +++
 title = "What is FX?"
-author = ["Robert Franolic"]
+author = ["Rob Franolic"]
 draft = false
 +++
 
