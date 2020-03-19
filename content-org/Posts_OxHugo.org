@@ -2,12 +2,15 @@
 #+HUGO_SECTION: post
 #+HUGO_BASE_DIR: ~/eyesonfx
 #+EXPORT_HUGO_BUNDLE: page-bundle-images-in-same-dir
-#+PROPERTY: header-args:R  :session *R* :results replace :tangle yes :eval no
+#+PROPERTY: header-args:R  :session *R* :results replace :tangle yes :eval no :exports none
 * Setup
 #+BEGIN_SRC R :eval yes
   source( "/Dnk/R_setup.R")
   library( ggplot2)
   library( png)
+  library( hms)
+  library( bizdays)
+  library( gridExtra)
   m$p$clr$grn <- "#439C63"
   m$p$clr$rd <- "#EA5D79"
   m$p$clr$drk_gry <- "dark grey"
@@ -15,9 +18,11 @@
   m$p$clr$lght_gry <- "light grey"
   m$p$clr$lght_lght_gry <- "grey95"
   m$p$eyesonfx_lg <- rasterGrob( readPNG( "/Users/rfranolic/eyesonfx/assets/images/eyesonfx.png"), interpolate= TRUE)
+  setwd( "~/eyesonfx/content-org")
 #+END_SRC
 
 #+RESULTS:
+: /Dnk/Srcs/Ermny/Extrct
 
 * Posts
 ** 'Welcome my some, welcome to the machine'                            :How:
@@ -44,11 +49,220 @@ motive is not necessarily the primary driver.
 :PROPERTIES:
 :EXPORT_FILE_NAME: so_you_and_you_run
 :END:
+[[file:catch_up_with_the_sun.gif]]
+
 Like the lyrics from Pink Floyd's famous song 'Time', the 24 hour FX
 market is often said to 'chase the sun'. In this blog, using more than
 70 billion data points, I show X different ways in which time has a
 critical impact on the FX market.
 #+hugo: more
+
+*** Read in data
+#+BEGIN_SRC R
+  m$i$tr_fx <- fread( "/Dnk/Srcs/Tr_FX/Smry/EURUSD.csv")
+
+  m$i$tr_fx[ , tm:= fastPOSIXct( tm, tz= "Europe/London")]
+  m$i$tr_fx[ , N:= as.numeric( N)]
+
+  # Determin FX day as London time + 2 hours - and remove any weekend days that remain
+  m$i$tr_fx[ , fx_dy:= as.Date( tm + 2 * 60 * 60)]
+  m$i$tr_fx <- m$i$tr_fx[ weekdays( fx_dy) %in% c( "Monday", "Tuesday", "Wednesday", "Thursday", "Friday")]
+
+  # Only interested in full years
+  m$i$tr_fx <- m$i$tr_fx[ tm >= as.Date( "2010-01-01") & tm < as.Date( "2020-01-01")]
+
+
+  # Create calendar for business day calculation - sometimes Jan 1 has data, other times not!
+  m$p$clndr <- create.calendar( "working",
+  #                             holidays= c( seq( as.Date( "2010-01-01"), by= "1 year", length.out= 20)),
+			       weekdays=c( "saturday", "sunday"))
+  # Working days in month
+  m$i$tr_fx[ , wrk_dy_mnth:= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr)]
+  # Discontinuity between January 2013 and August, and also between April 2016 and June 2017
+  m$p$tr_fx$brks <- data.table( brk= c(  1),#, 2),
+			       frm= as.Date( c( #"2013-01-01",
+				   "2016-04-01")),
+			       to= as.Date( c( #"2013-09-01",
+				   "2017-07-01")))
+
+  # Add column for breaks on original data
+  m$i$tr_fx[ , brk:= fifelse( tm >= m$p$tr_fx$brks$frm[1] & tm < m$p$tr_fx$brks$to[1], 1, 0)]
+  #			   fifelse( tm >= m$p$tr_fx$brks$frm[2] & tm < m$p$tr_fx$brks$to[2], 2, 0))]
+
+
+  # Determine good adjustment for the break period
+  m$p$tr_fx$brks <- m$p$tr_fx$brks[ m$i$tr_fx[ , .( N= sum( N)), .( crnc, yr= year( tm), dt= as.Date( tm), brk)][
+		 , .( N= mean( N)),
+		 .( yr_mnth= as.yearmon( dt), mnth= month( dt), brk)][
+	      , .( yr_mnth, N, brk, mn= mean( fifelse( brk==0, N, as.numeric( NA)), na.rm= TRUE)), mnth][
+		, .( yr_mnth, brk, mltpl= N/ mn), ][ , .( mltpl= mean( mltpl)), brk], on= "brk" ]
+
+  # Make adjustments
+  m$i$tr_fx[ m$p$tr_fx$brks, adjst_N:= N / mltpl, on= "brk"]
+
+  # Summarise at day level 
+  m$x$tr_fx$dly <- m$i$tr_fx[ , .( N= sum( adjst_N), N0= sum( N)),
+			     .( crnc, yr= year( fx_dy), fx_dy)]
+
+  # Determine Working days in month - by counting days in data, or by data calculation
+  m$x$tr_fx$dly[ order( fx_dy), wrk_dy_mnth:= 1:.N, .( yr_mnth= as.yearmon( fx_dy))]  # by counting days in data
+  m$x$tr_fx$dly[ order( fx_dy), wrk_dy_mnth:= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr)]
+  # Second method works better as there are missing days in the data
+  # Missing days in Febuary 2010 between 2010-02-10 and 2010-02-16 inclusive
+  # Also Missing 2011-01-25
+
+  m$x$tr_fx$dly[ order( fx_dy), .( fx_dy, wrk_dy_mnth, wday( fx_dy),
+				  1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr))][
+		year( fx_dy)== 2012 & month( fx_dy)==12]
+
+
+  # Check distribution of working days
+  m$x$tr_fx$dly[ , .N, wrk_dy_mnth][ order( wrk_dy_mnth)]
+
+  # Summarise at minute level
+  m$x$tr_fx$mntly <- m$i$tr_fx[ , .( N= sum( adjst_N), N0= sum( N)),
+			       .( crnc, wrk_dy_mnth= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr),
+				 tm= as.POSIXct( "1970-01-01", tz= "GMT") +
+				     60 * 60 * hour( tm) + 60 * minute( tm))]
+
+  m$o$tr_fx <- rbindlist( list(
+      # each month over all 10 years
+      m$x$tr_fx$dly[ , .( grp= 1, N= sum( N), N0= sum( N0)),
+		    .( lbl= as.character( year( fx_dy)), tm= as.numeric( as.yearmon( fx_dy)))],  
+      # each  month by year
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), lbl= month.abb[ min( month( fx_dy))]),
+		    .( tm= month( fx_dy), grp= year( fx_dy))], 
+      # each week of month by year
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), lbl= month.abb[ min( month( fx_dy))]),
+		    .( tm= week( fx_dy), grp= year( fx_dy))], 
+      # each working day of month by average month
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0)),
+		    .( lbl= substr( weekdays( fx_dy), 1, 1),
+			    tm= wday( fx_dy)- 1 + 5 * day( fx_dy) %/% 7,
+			    grp= month( fx_dy))],
+      # each 15 minute slot of day
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( tm, "%H"), tm= as.numeric( floor_date( tm, "15 minute")),
+			grp= wrk_dy_mnth)],
+      # each minute of hour
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( as.hms( floor_date( tm, "5 minute")), "%M"), tm= minute( tm),
+			grp= hour( tm))]),
+      idcol= "typ", use.names= TRUE)
+
+  # Index groups
+  # Ensure Order 
+  #m$o$tr_fx <- m$o$tr_fx[ order( typ, grp, tm)]
+  m$o$tr_fx[ order( typ, grp, tm), i:= 1:.N, .( typ, tm)]
+
+
+  m$o$cmnts <- list(
+      3, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD")
+
+
+  m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
+				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
+  m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
+
+  saveGIF({ ani.options(interval = 2, nmax = 75)
+      for( j in m$o$tr_fx[ , .N, typ][ , typ]){
+	  for( k in c( 2 ^ ( 0:sqrt( m$o$tr_fx[ typ== j, max( i)])),
+		      m$o$tr_fx[ typ== j, max( i)], 999, 1000)){
+	      m$o$plt1 <-  ggplot( data= m$o$tr_fx[ typ== j & i <= k]) +
+					  # vertical guidelines
+		  geom_segment( data= function( x) x[ , .( frst_tm= min( tm), tm), .( lbl)][ frst_tm== tm],
+			       mapping= aes( x= tm, xend= tm), y= 0, yend= +Inf, colour= m$p$clr$lght_gry) +
+		  geom_line( data= function( x) x[ k< 999],
+			    mapping= aes( x= tm, y= N, group= grp), size= 2, colour= "dark grey") +
+		  geom_line( data= function( x) x[ k< 1000],
+			    mapping= aes( x= tm, y= N, group= grp), size= 2, colour= NA) +
+		  geom_line( data= function( x) x[ k!= 1, .( N= median( N)), .( tm)],
+			mapping= aes( x= tm, y= N),
+			colour= "black", size= 2)+
+		  geom_line( data= function( x) x[ k!= 1, .( N= mean( N)), .( tm)],
+			mapping= aes( x= tm, y= N),
+			colour= m$p$clr$grn, size= 2) +
+		  geom_text( data= function( x) x[ lbl!= shift( lbl)],
+			mapping= aes( x= tm, label= lbl), y= 0, size= 8, vjust= 0) +
+					  #            theme_grey())
+		  theme_void()
+	      grid.arrange( m$o$plt1, m$o$plt1, ncol= 1)
+	  }
+      }
+  }, movie.name = "catch_up_with_the_sun.gif", ani.width = 750, ani.height = 1200)
+
+  # Let's plot it!
+  #saveGIF({ ani.options(interval = 2, nmax = 75)
+
+  for( j in NULL){
+      print(
+	  ggplot( data= m$o$ermny) +
+	  # lines
+	  geom_line( mapping= aes( x= yr, y= shr, group= lp),
+		    colour= m$p$clr$drk_gry) +
+	  # labels
+	  geom_text( data= function( x)
+	      x[ lp!= j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
+	      mapping= aes( x= yr + 3/12, y= shr, label= paste( lp), hjust= 0),
+	      colour= m$p$clr$drk_gry, size= 5) +
+	  # last point
+	  geom_point( data= function( x)
+	      x[ lp!= j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
+	      mapping= aes( x= yr, y= shr), 
+	      colour= m$p$clr$drk_gry, size= 3)+
+	  # highlighted line
+	  geom_line( data= function( x) x[ lp== j],
+		    mapping= aes( x= yr, y= shr),
+		    colour= m$p$clr$rd, size= 2) +
+	  # highlighted last point line
+	  geom_point(
+	      data= function( x) x[ lp== j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
+	      mapping= aes( x= yr, y= shr), 
+	      colour= m$p$clr$rd, size= 4)+
+	  # white background highlighted label
+	  geom_text( data= function( x)
+	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr][
+		  rep( 1, 4), .( yr, shr, rnk, x= c( 1/24, 0, -1/24, 0),
+				y= c( 0, 0.0002, 0, -0.0002),
+				lp)],
+	      mapping= aes( x= yr + 3/12 + x, y= shr+ y,
+			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100),1))),
+	      colour= "white", fontface= "bold", hjust= 0, size= 5) +
+	  # highlighted label
+	  geom_text( data= function( x)
+	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
+	      mapping= aes( x= yr + 3/12, y= shr,
+			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100, 1)))),
+		    fontface= "bold", hjust= 0, size= 5, colour= m$p$clr$rd) +
+	  # logo
+	  annotation_custom( m$p$eyesonfx_lg, xmin= 2022, xmax= 2025, ymin=0.195, ymax= 0.2) +
+	  # source
+	  annotate( geom= "text", x= 2020, y= -10, hjust= 1, vjust= 0, size= 5,
+		   label= "Source: Euromoney FX surveys", colour= m$p$clr$drk_gry) +
+	  annotate( geom= "segment", x= 2009.5, xend= 2019, y= 0, yend= 0, colour= m$p$clr$lght_lght_gry) +
+	  annotate( geom= "text", x= 2010:2019, y= -0.002, label= 2010:2019,
+		   size= 5) +
+	  annotate( geom= "segment", x= 2009.5, xend= 2009.5, y= 0, yend= 0.19, colour= m$p$clr$lght_lght_gry) +
+	  annotate( geom= "text", x= 2009, y= seq( 0.0, 0.175, 0.025), label= seq( 0.0, 0.175, 0.025),
+		   size= 5, hjust= 1) +
+	  # commentary
+	  geom_label( data= m$o$cmnts[ frm== j],
+		 mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
+		 alpha= 1.0, colour= "white", size= 6, fontface= "bold") +
+	  scale_x_continuous( limits= c( 2008, 2025), breaks= 2010:2019, expand= expansion(mult = 0, add = 0)) +
+	  scale_y_continuous( limits= c( -0.01, 0.2), expand= expansion(mult = 0, add = 0)) +
+  #      theme_grey()) 
+	theme_void()) 
+  #    geom_label( data= function( x) x[ n==0],
+  #	      mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
+  #	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
+  #	      hjust= 0, vjust= 0.5 ) +
+  }
+  #}
+  #, movie.name = "Whos_who.gif", ani.width = 500, ani.height = 800) 
+  #, movie.name = "Whats_what.mp4", ani.width = 750, ani.height = 1200) 
+#+END_SRC
+
 - Time of year
 - Time of month
 - The working week
@@ -67,7 +281,17 @@ Spot venues battle for market share.
 :PROPERTIES:
 :EXPORT_FILE_NAME: whos_who
 :END:
+
+file:Whos_who.gif
+
 Who are the most important players in the FX market.
+
+#+hugo: more
+In my last post, I described what the main
+- Herfindahl Index?
+Concentration within the FX market
+- Rise of non-Bank liquidity providers
+
 #+BEGIN_SRC R
   m$i$ermny <- fread( "/Dnk/Srcs/Ermny/Out/Ermny_Srvy.csv")
 
@@ -96,45 +320,60 @@ Who are the most important players in the FX market.
   for( j in m$o$ermny[ , .N, lp][ order( lp), lp]){
       print(
 	  ggplot( data= m$o$ermny) +
+	  # lines
 	  geom_line( mapping= aes( x= yr, y= shr, group= lp),
 		    colour= m$p$clr$drk_gry) +
+	  # labels
 	  geom_text( data= function( x)
 	      x[ lp!= j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
-	      mapping= aes( x= yr + 3/12, y= shr, label= paste( rnk, lp), hjust= 0),
-	      colour= m$p$clr$drk_gry, size= 6) +
+	      mapping= aes( x= yr + 3/12, y= shr, label= paste( lp), hjust= 0),
+	      colour= m$p$clr$drk_gry, size= 5) +
+	  # last point
 	  geom_point( data= function( x)
 	      x[ lp!= j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
 	      mapping= aes( x= yr, y= shr), 
 	      colour= m$p$clr$drk_gry, size= 3)+
+	  # highlighted line
 	  geom_line( data= function( x) x[ lp== j],
 		    mapping= aes( x= yr, y= shr),
 		    colour= m$p$clr$rd, size= 2) +
+	  # highlighted last point line
 	  geom_point(
 	      data= function( x) x[ lp== j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
 	      mapping= aes( x= yr, y= shr), 
 	      colour= m$p$clr$rd, size= 4)+
+	  # white background highlighted label
 	  geom_text( data= function( x)
 	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr][
 		  rep( 1, 4), .( yr, shr, rnk, x= c( 1/24, 0, -1/24, 0),
 				y= c( 0, 0.0002, 0, -0.0002),
 				lp)],
-	      mapping= aes( x= yr + 3/12 + x, y= shr+ y, label= paste( rnk, lp)),
-	      colour= "white", fontface= "bold", hjust= 0, size= 6) +
+	      mapping= aes( x= yr + 3/12 + x, y= shr+ y,
+			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100),1))),
+	      colour= "white", fontface= "bold", hjust= 0, size= 5) +
+	  # highlighted label
 	  geom_text( data= function( x)
 	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
-		    mapping= aes( x= yr + 3/12, y= shr, label= paste( rnk, lp)),
-		    fontface= "bold", hjust= 0, size= 6, colour= m$p$clr$rd) +
+	      mapping= aes( x= yr + 3/12, y= shr,
+			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100, 1)))),
+		    fontface= "bold", hjust= 0, size= 5, colour= m$p$clr$rd) +
 	  # logo
-	  annotation_custom( m$p$eyesonfx_lg, xmin= 198, xmax=260, ymin=22, ymax=40) +
+	  annotation_custom( m$p$eyesonfx_lg, xmin= 2022, xmax= 2025, ymin=0.195, ymax= 0.2) +
 	  # source
 	  annotate( geom= "text", x= 2020, y= -10, hjust= 1, vjust= 0, size= 5,
 		   label= "Source: Euromoney FX surveys", colour= m$p$clr$drk_gry) +
+	  annotate( geom= "segment", x= 2009.5, xend= 2019, y= 0, yend= 0, colour= m$p$clr$lght_lght_gry) +
+	  annotate( geom= "text", x= 2010:2019, y= -0.002, label= 2010:2019,
+		   size= 5) +
+	  annotate( geom= "segment", x= 2009.5, xend= 2009.5, y= 0, yend= 0.19, colour= m$p$clr$lght_lght_gry) +
+	  annotate( geom= "text", x= 2009, y= seq( 0.0, 0.175, 0.025), label= seq( 0.0, 0.175, 0.025),
+		   size= 5, hjust= 1) +
 	  # commentary
 	  geom_label( data= m$o$cmnts[ frm== j],
 		 mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
 		 alpha= 1.0, colour= "white", size= 6, fontface= "bold") +
-	  scale_x_continuous( limits= c( 2010, 2025), breaks= 2010:2019, expand= expansion(mult = 0, add = 0)) +
-	  scale_y_continuous( limits= c( 0, 0.2), expand= expansion(mult = 0, add = 0)) +
+	  scale_x_continuous( limits= c( 2008, 2025), breaks= 2010:2019, expand= expansion(mult = 0, add = 0)) +
+	  scale_y_continuous( limits= c( -0.01, 0.2), expand= expansion(mult = 0, add = 0)) +
   #      theme_grey()) 
 	theme_void()) 
   #    geom_label( data= function( x) x[ n==0],
@@ -146,11 +385,6 @@ Who are the most important players in the FX market.
   #, movie.name = "Whats_what.mp4", ani.width = 750, ani.height = 1200) 
 #+END_SRC
 
-#+hugo: more
-In my last post, I described what the main
-- Herfindahl Index?
-Concentration within the FX market
-- Rise of non-Bank liquidity providers
 ** What's what?                                              :tag1:viz:@What:
    SCHEDULED: <2020-03-01 Sun>
 :PROPERTIES:
