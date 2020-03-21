@@ -6,23 +6,49 @@
 * Setup
 #+BEGIN_SRC R :eval yes
   source( "/Dnk/R_setup.R")
+
   library( ggplot2)
   library( png)
   library( hms)
   library( bizdays)
   library( gridExtra)
+  library( timeDate)
+  library( grid)
+  library( animation)
+  library( showtext)
+
+  # Working directory
+  setwd( "~/eyesonfx/content-org")
+
+  # Fonts
+  font_add_google( "Quantico", "Quantico")
+  font_add_google( "Merriweather", "Merriweather")
+
+  # Colours
   m$p$clr$grn <- "#439C63"
   m$p$clr$rd <- "#EA5D79"
   m$p$clr$drk_gry <- "dark grey"
   m$p$clr$gry <- "grey"
   m$p$clr$lght_gry <- "light grey"
-  m$p$clr$lght_lght_gry <- "grey95"
+  m$p$clr$bckgrnd_gry <- "grey95"
+
+  # Logo
   m$p$eyesonfx_lg <- rasterGrob( readPNG( "/Users/rfranolic/eyesonfx/assets/images/eyesonfx.png"), interpolate= TRUE)
-  setwd( "~/eyesonfx/content-org")
+
+  # Header and footer for plots
+  m$p$plt_src <- "Change m$p$plt_src"
+  m$p$hdr_plt <- ggplot() + theme_void() +
+		  theme( plot.background= element_rect( fill= "grey95", colour= NA),
+				       panel.background= element_rect( fill= "grey95", colour= NA)) +
+      scale_x_continuous( limits= c( 0, 500), expand= expansion(mult = 0, add = 0)) +
+      scale_y_continuous( limits= c( 0, 25), expand= expansion(mult = 0, add = 0)) 
+  m$p$ftr_plt <- m$p$hdr_plt + scale_y_continuous( limits= c( 0, 15), expand= expansion(mult = 0, add = 0)) 
+  m$p$hdr_plt <- m$p$hdr_plt + annotation_custom( m$p$eyesonfx_lg, xmin= 373, xmax= 499, ymin=0, ymax= 25)
+  m$p$ftr_plt <- m$p$ftr_plt + annotate( geom= "text", x= 499, y= 1, hjust= 1, vjust= 0, size= 5,
+					    label= paste0( "Source: ", m$p$plt_src), colour= m$p$clr$drk_gry)
 #+END_SRC
 
 #+RESULTS:
-: /Dnk/Srcs/Ermny/Extrct
 
 * Posts
 ** 'Welcome my some, welcome to the machine'                            :How:
@@ -40,8 +66,8 @@ market, and explore different trading mechanisms.
 :END:
 Continuing with Pink Floyd lyrics, this time from 'Money', I explore
 the motivations for trading in the FX market, by answering the
-question why is FX traded? Unlike Pink Floyd's lyrics, the profit
-motive is not necessarily the primary driver.
+question why is FX traded? Unlike the lyrics, the profit motive is not
+necessarily the primary driver.
 #+hugo: more
 
 ** 'So you run and you run to catch up with the sun'                   :When:
@@ -57,104 +83,153 @@ market is often said to 'chase the sun'. In this blog, using more than
 critical impact on the FX market.
 #+hugo: more
 
-*** Read in data
+*** Read in and summarise data
 #+BEGIN_SRC R
-  m$i$tr_fx <- fread( "/Dnk/Srcs/Tr_FX/Smry/EURUSD.csv")
+  m$p$fls <- list.files( path= "/Dnk/Srcs/Tr_FX/Smry/", full.names= TRUE)[
+      grepl( "*.csv", list.files( path= "/Dnk/Srcs/Tr_FX/Smry/"))]
 
-  m$i$tr_fx[ , tm:= fastPOSIXct( tm, tz= "Europe/London")]
-  m$i$tr_fx[ , N:= as.numeric( N)]
+  m$x$tr_fx$dly <- list()
+  m$x$tr_fx$mntly <- list()
 
-  # Determin FX day as London time + 2 hours - and remove any weekend days that remain
-  m$i$tr_fx[ , fx_dy:= as.Date( tm + 2 * 60 * 60)]
-  m$i$tr_fx <- m$i$tr_fx[ weekdays( fx_dy) %in% c( "Monday", "Tuesday", "Wednesday", "Thursday", "Friday")]
+  for ( fl in m$p$fls){
 
-  # Only interested in full years
-  m$i$tr_fx <- m$i$tr_fx[ tm >= as.Date( "2010-01-01") & tm < as.Date( "2020-01-01")]
+      print( fl)
+      m$i$tr_fx <- fread( fl)
+
+      # Convert time to POSIX and London time
+      m$i$tr_fx[ , tm:= fastPOSIXct( tm, tz= "Europe/London")]
+      m$i$tr_fx[ , N:= as.numeric( N)]
+
+      # Determine FX day as London time + 2 hours - and remove any weekend days that remain
+      m$i$tr_fx[ , fx_dy:= as.Date( tm + 2 * 60 * 60)]
+      m$i$tr_fx <- m$i$tr_fx[ weekdays( fx_dy) %in% c( "Monday", "Tuesday", "Wednesday", "Thursday", "Friday")]
+
+      # Only interested in full years
+      m$i$tr_fx <- m$i$tr_fx[ tm >= as.Date( "2010-01-01") & tm < as.Date( "2020-01-01")]
 
 
-  # Create calendar for business day calculation - sometimes Jan 1 has data, other times not!
-  m$p$clndr <- create.calendar( "working",
-  #                             holidays= c( seq( as.Date( "2010-01-01"), by= "1 year", length.out= 20)),
-			       weekdays=c( "saturday", "sunday"))
-  # Working days in month
-  m$i$tr_fx[ , wrk_dy_mnth:= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr)]
-  # Discontinuity between January 2013 and August, and also between April 2016 and June 2017
-  m$p$tr_fx$brks <- data.table( brk= c(  1),#, 2),
-			       frm= as.Date( c( #"2013-01-01",
+     # Create calendar for business day calculation - sometimes Jan 1 has data, other times not!
+      m$p$clndr <- create.calendar( "working",
+				   weekdays=c( "saturday", "sunday"))
+
+      # Working days in month
+      m$i$tr_fx[ , wrk_dy_mnth:= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr)]
+
+      # Discontinuity between January 2013 and August, and also between April 2016 and June 2017
+      m$p$tr_fx$brks <- data.table( brk= c(  1, 2),
+			       frm= as.Date( c( "2013-01-01",
 				   "2016-04-01")),
-			       to= as.Date( c( #"2013-09-01",
+			       to= as.Date( c( "2013-09-01",
 				   "2017-07-01")))
 
-  # Add column for breaks on original data
-  m$i$tr_fx[ , brk:= fifelse( tm >= m$p$tr_fx$brks$frm[1] & tm < m$p$tr_fx$brks$to[1], 1, 0)]
-  #			   fifelse( tm >= m$p$tr_fx$brks$frm[2] & tm < m$p$tr_fx$brks$to[2], 2, 0))]
+      # Add column for breaks on original data
+      m$i$tr_fx[ , brk:= fifelse( tm >= m$p$tr_fx$brks$frm[1] & tm < m$p$tr_fx$brks$to[1], 1,
+			     fifelse( tm >= m$p$tr_fx$brks$frm[2] & tm < m$p$tr_fx$brks$to[2], 2, 0))]
 
 
-  # Determine good adjustment for the break period
-  m$p$tr_fx$brks <- m$p$tr_fx$brks[ m$i$tr_fx[ , .( N= sum( N)), .( crnc, yr= year( tm), dt= as.Date( tm), brk)][
+      # Determine good adjustment for the break period
+      m$p$tr_fx$brks <- m$p$tr_fx$brks[ m$i$tr_fx[ , .( N= sum( N)), .( crnc, yr= year( tm), dt= as.Date( tm), brk)][
 		 , .( N= mean( N)),
 		 .( yr_mnth= as.yearmon( dt), mnth= month( dt), brk)][
 	      , .( yr_mnth, N, brk, mn= mean( fifelse( brk==0, N, as.numeric( NA)), na.rm= TRUE)), mnth][
 		, .( yr_mnth, brk, mltpl= N/ mn), ][ , .( mltpl= mean( mltpl)), brk], on= "brk" ]
 
-  # Make adjustments
-  m$i$tr_fx[ m$p$tr_fx$brks, adjst_N:= N / mltpl, on= "brk"]
+      # Make adjustments
+      m$i$tr_fx[ m$p$tr_fx$brks, adjst_N:= N / mltpl, on= "brk"]
 
-  # Summarise at day level 
-  m$x$tr_fx$dly <- m$i$tr_fx[ , .( N= sum( adjst_N), N0= sum( N)),
+      # Show adjustments
+      print( m$p$tr_fx$brks)
+
+      # Summarise at day level 
+      m$x$tr_fx$dly[[ which( m$p$fls %in% fl)]] <- m$i$tr_fx[ , .( N= sum( adjst_N), N0= sum( N)),
 			     .( crnc, yr= year( fx_dy), fx_dy)]
 
-  # Determine Working days in month - by counting days in data, or by data calculation
-  m$x$tr_fx$dly[ order( fx_dy), wrk_dy_mnth:= 1:.N, .( yr_mnth= as.yearmon( fx_dy))]  # by counting days in data
-  m$x$tr_fx$dly[ order( fx_dy), wrk_dy_mnth:= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr)]
-  # Second method works better as there are missing days in the data
-  # Missing days in Febuary 2010 between 2010-02-10 and 2010-02-16 inclusive
-  # Also Missing 2011-01-25
+      # Determine Working days in month - by counting days in data, or by data calculation
+      #m$x$tr_fx$dly[ [ order( fx_dy), wrk_dy_mnth:= 1:.N, .( yr_mnth= as.yearmon( fx_dy))]  # by counting days in data
+      #m$x$tr_fx$dly[ order( fx_dy), wrk_dy_mnth:= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr)]
+      # Second method works better as there are missing days in the data
+      # Missing days in Febuary 2010 between 2010-02-10 and 2010-02-16 inclusive
+      # Also Missing 2011-01-25
 
-  m$x$tr_fx$dly[ order( fx_dy), .( fx_dy, wrk_dy_mnth, wday( fx_dy),
-				  1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr))][
-		year( fx_dy)== 2012 & month( fx_dy)==12]
+      #m$x$tr_fx$dly[ order( fx_dy), .( fx_dy, wrk_dy_mnth, wday( fx_dy),
+      #				1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr))][
+      #	      year( fx_dy)== 2012 & month( fx_dy)==12]
 
 
-  # Check distribution of working days
-  m$x$tr_fx$dly[ , .N, wrk_dy_mnth][ order( wrk_dy_mnth)]
+      # Check distribution of working days
+      #m$x$tr_fx$dly[ , .N, wrk_dy_mnth][ order( wrk_dy_mnth)]
 
-  # Summarise at minute level
-  m$x$tr_fx$mntly <- m$i$tr_fx[ , .( N= sum( adjst_N), N0= sum( N)),
+      # Summarise at minute level
+      m$x$tr_fx$mntly[[ which( m$p$fls %in% fl)]] <- m$i$tr_fx[ , .( N= sum( adjst_N), N0= sum( N)),
 			       .( crnc, wrk_dy_mnth= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr),
-				 tm= as.POSIXct( "1970-01-01", tz= "GMT") +
+				 tm= as.POSIXct( "1970-01-01", tz= "Europe/London") +
 				     60 * 60 * hour( tm) + 60 * minute( tm))]
+  }
 
+  m$x$tr_fx$dly <- rbindlist( m$x$tr_fx$dly)
+  m$x$tr_fx$mntly <- rbindlist( m$x$tr_fx$mntly)
+#+END_SRC
+
+- Time of year
+- Time of month
+- The working week
+- Time of the day
+- Intra-hour
+*** Analyse data
+#+BEGIN_SRC R
   m$o$tr_fx <- rbindlist( list(
       # each month over all 10 years
-      m$x$tr_fx$dly[ , .( grp= 1, N= sum( N), N0= sum( N0)),
-		    .( lbl= as.character( year( fx_dy)), tm= as.numeric( as.yearmon( fx_dy)))],  
-      # each  month by year
-      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), lbl= month.abb[ min( month( fx_dy))]),
-		    .( tm= month( fx_dy), grp= year( fx_dy))], 
+      m$x$tr_fx$dly[ , .( grp1= 1, N= sum( N), N0= sum( N0)),
+		    .( lbl= as.character( year( fx_dy)), grp2= year( fx_dy),
+		      tm= as.numeric( as.yearmon( fx_dy)))],  
+  #    # each  month by year
+  #    m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), lbl= month.abb[ min( month( fx_dy))]),
+  #		  .( tm= month( fx_dy), grp1= year( fx_dy))], 
       # each week of month by year
-      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), lbl= month.abb[ min( month( fx_dy))]),
-		    .( tm= week( fx_dy), grp= year( fx_dy))], 
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), grp2= min( month( fx_dy)),
+			 lbl= month.abb[ min( month( fx_dy))]),
+		    .( tm= week( fx_dy), grp1= year( fx_dy))], 
       # each working day of month by average month
       m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0)),
 		    .( lbl= substr( weekdays( fx_dy), 1, 1),
 			    tm= wday( fx_dy)- 1 + 5 * day( fx_dy) %/% 7,
-			    grp= month( fx_dy))],
+			    grp2= 5 * day( fx_dy) %/% 7, grp1= month( fx_dy))],
       # each 15 minute slot of day
       m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
-		      .( lbl= strftime( tm, "%H"), tm= as.numeric( floor_date( tm, "15 minute")),
-			grp= wrk_dy_mnth)],
+		      .( lbl= strftime( tm, "%H", tz= "Europe/London"), tm= as.numeric( floor_date( tm, "15 minute")),
+			grp2= hour( tm), grp1= wrk_dy_mnth)],
       # each minute of hour
       m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
 		      .( lbl= strftime( as.hms( floor_date( tm, "5 minute")), "%M"), tm= minute( tm),
-			grp= hour( tm))]),
+			grp2= as.numeric( as.hms( floor_date( tm, "5 minute"))), grp1= hour( tm))]),
       idcol= "typ", use.names= TRUE)
 
   # Index groups
   # Ensure Order 
-  #m$o$tr_fx <- m$o$tr_fx[ order( typ, grp, tm)]
-  m$o$tr_fx[ order( typ, grp, tm), i:= 1:.N, .( typ, tm)]
+  #m$o$tr_fx <- m$o$tr_fx[ order( typ, grp1, tm)]
+  m$o$tr_fx[ order( typ, grp1, tm), i:= 1:.N, .( typ, tm)]
+  m$o$tr_fx[ order( typ, grp1, tm), i2:= cumsum( fifelse( grp2== shift( grp2, fill= -1), 0, 1)), .( typ, grp1)] 
+  m$o$tr_fx[ typ== 3, i2:= tm]
 
+  # Highlight important times
+  m$o$tr_fx[ typ== 4 &
+	     tm %in% as.numeric( floor_date( as.POSIXct( c( "1970-01-01 07:00", "1970-01-01 13:00",
+							   "1970-01-01 16:00"),
+							tz= "Europe/London"), "15 minute")), clr:= m$p$clr$grn]
+
+  m$o$tr_fx[ typ== 4 &
+	     tm %in% as.numeric( floor_date( as.POSIXct( c( "1970-01-01 17:00"),
+							tz= "Europe/London"), "15 minute")), clr:= m$p$clr$rd]
+
+  # Highlight (average) week of UK Holidays
+  m$p$hldys <-  as.data.table( table( week( holidayLONDON( year= 2010:2019))))
+  setnames( m$p$hldys, c( "wk", "N"))
+  m$p$hldys[ , hldy:= c( "New Years", rep( "Easter", 5), rep( "May Day", 2), rep( "Last May Monday", 3),
+		       rep( "August Bank Holiday", 2),  "Christmas")]
+
+  m$o$tr_fx[ typ== 2 & tm %in%
+	     m$p$hldys[ , .( sum( N), wk= mean( as.numeric( wk))), hldy][ , round( wk)],
+	    clr:= m$p$clr$rd]
 
   m$o$cmnts <- list(
       3, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD")
@@ -164,103 +239,101 @@ critical impact on the FX market.
 				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
   m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
 
-  saveGIF({ ani.options(interval = 2, nmax = 75)
-      for( j in m$o$tr_fx[ , .N, typ][ , typ]){
-	  for( k in c( 2 ^ ( 0:sqrt( m$o$tr_fx[ typ== j, max( i)])),
-		      m$o$tr_fx[ typ== j, max( i)], 999, 1000)){
-	      m$o$plt1 <-  ggplot( data= m$o$tr_fx[ typ== j & i <= k]) +
-					  # vertical guidelines
-		  geom_segment( data= function( x) x[ , .( frst_tm= min( tm), tm), .( lbl)][ frst_tm== tm],
-			       mapping= aes( x= tm, xend= tm), y= 0, yend= +Inf, colour= m$p$clr$lght_gry) +
-		  geom_line( data= function( x) x[ k< 999],
-			    mapping= aes( x= tm, y= N, group= grp), size= 2, colour= "dark grey") +
-		  geom_line( data= function( x) x[ k< 1000],
-			    mapping= aes( x= tm, y= N, group= grp), size= 2, colour= NA) +
-		  geom_line( data= function( x) x[ k!= 1, .( N= median( N)), .( tm)],
-			mapping= aes( x= tm, y= N),
-			colour= "black", size= 2)+
-		  geom_line( data= function( x) x[ k!= 1, .( N= mean( N)), .( tm)],
-			mapping= aes( x= tm, y= N),
-			colour= m$p$clr$grn, size= 2) +
-		  geom_text( data= function( x) x[ lbl!= shift( lbl)],
-			mapping= aes( x= tm, label= lbl), y= 0, size= 8, vjust= 0) +
-					  #            theme_grey())
-		  theme_void()
-	      grid.arrange( m$o$plt1, m$o$plt1, ncol= 1)
+  m$p$prds <- data.table( lbl= c( "10 years", "Avg year", "Avg month", "Avg day", "Avg hour"),
+			 x= seq( 1, by= 70, length.out= 5), i= 1:5)
+
+
+
+  m$f$plt <- function( tp, j, k){
+      ggplot( data= m$o$tr_fx[ typ== j]) +
+	  # highlighted times
+	  geom_segment( data= function( x) x[ tp== TRUE & !is.na( clr),
+					     .( frst_grp1= min( grp1), grp1, clr, tm), .( lbl)][ frst_grp1== grp1],
+		       mapping= aes( x= tm, xend= tm, colour= I( clr)),
+		       size= 1, y= -Inf, yend= +Inf)+
+	  # lines for each group 
+	  geom_line( data= function( x) x[ tp== TRUE  & k< 998 & i<= k],
+		    mapping= aes( x= tm, y= N, group= grp1, 
+				 colour= I( c( "grey80", "grey50", rep( "grey20", 100))[ i])),
+		    size= 1.5, alpha= 0.75) +
+	  #geom_line( data= function( x) x[ tp== TRUE  & i <= k & k< 999],
+	  #          mapping= aes( x= tm, y= N, group= grp1), size= 2, colour= NA) +
+	  # total line for top graph 
+	  geom_line( data= function( x) x[ tp== TRUE & k >= 2 & i <= k, .( N= sum( N)), .( tm)],
+		    mapping= aes( x= tm, y= N),
+		    colour= "black", size= 1.5) +
+	  # total line for bottom graph
+	  geom_line( data= function( x) x[ tp== FALSE][ order( tm), .( N= sum( N), i2= min( i2)), .( tm)],
+		    mapping= aes( x= tm, y= N, 
+				 colour= I( ifelse( i2 > 0 & k >= 998, "black",
+						   c( "grey80", "grey50", rep( "grey20", 100))[ i2]))),
+		    size= 1.5, alpha= 0.75) +
+	  # labels - for groups
+	  geom_text( data= function( x) x[ tp== TRUE & k < 2, .( lbl, i2, grp1, mx_N= max(N), mn_N= min( N)), tm][
+					  , .( tm= min( tm), mx_N= max( mx_N), mn_N= min( mn_N), lbl= max( lbl)), i2][
+					   , .( tm, lbl, mx_N= max( mx_N), mn_N= min( mn_N))],
+		    mapping= aes( x= tm, label= lbl, y= floor( mn_N + ( mx_N- mn_N)* 0.97)),
+		    hjust= 0, size= 5, colour= "grey10", vjust= 1) +
+	  # vertical guideline labels - for total
+	  geom_text( data= function( x)
+	      x[tp== FALSE | ( k >= 2 & i <= k), .( lbl, i2, tm, N= sum(N)), tm][
+		, .( mn_tm= min( tm), lbl, tm, mx_N= max( N), mn_N= min( N)), .( i2)][
+		 ,.( tm= min( tm), lbl= max( lbl), mx_N= max( mx_N), mn_N= min( mn_N)), i2][
+		, .( lbl, tm, mx_N= max( mx_N), mn_N= min( mn_N))][ order( tm)],
+		    mapping= aes( x= tm, label= lbl, y= floor( mn_N + ( mx_N- mn_N)* 0.97)),
+		    hjust= 0, size= 5, colour= "grey10", vjust= 1) +
+	  # vertical guidelines
+	  geom_segment( data= function( x) x[ tp== FALSE & k != 999,
+					     .( frst_tm= min( tm), tm), .( i2)][ frst_tm== tm],
+		       mapping= aes( x= tm, xend= tm), y= -Inf, yend= +Inf, colour= m$p$clr$lght_gry) +
+	  # shading for bottom plot
+	  geom_rect( data= function( x) x[ tp== FALSE & typ== j & ( k>= 998 | i2> k),
+					  .( mn= min( tm), mx= max( tm))],
+		    mapping= aes( xmin= mn, xmax= mx),
+		    fill= m$p$clr$drk_gry, alpha= 0.5, ymin= -Inf, ymax= Inf) +
+	  scale_y_continuous( expand= expansion(mult = 0, add = 0)) +
+	  scale_x_continuous( expand= expansion(mult = 0.004, add = 0)) +
+  #        scale_colour_manual( values= rep( c( "grey80", "grey50", "grey20"), 300), guide= NULL) +
+	  theme_void() +
+		  theme( plot.background= element_rect( fill= "grey95", colour= NA),
+				       panel.background= element_rect( fill= "grey95", colour= NA))
+  }
+
+
+  m$o$ftr_plt <- m$p$ftr_plt
+  saveGIF({ ani.options(interval = 1, nmax = 75)
+      for( j in m$o$tr_fx[ , .N, typ][ , typ][]){
+	  m$o$hdr_plt <- m$p$hdr_plt +
+	      geom_rect( data= m$p$prds, mapping= aes( xmin= x, xmax= x+ 70,
+						       fill= I( ifelse( i== j, m$p$clr$bckgrnd_gry, m$p$clr$lght_gry))),
+						       ymin= 0, ymax= 25, colour= m$p$clr$bckgrnd_gry) +
+	      geom_text( data= m$p$prds, mapping= aes( x= x + 70/2, label= lbl,
+						      colour= I( ifelse( i== j, "black", m$p$clr$drk_gry))),
+		y= 12, size= 5)
+
+	  for( k in c( 1, 2, 3, 4, m$o$tr_fx[ typ== j, max( i)], 998: 1000)){
+	      if( j== 1 & k < 998)
+		  next
+	      m$o$plt1 <- m$f$plt( tp= TRUE, j= j, k= k)
+	      m$o$plt2 <-
+		  ggplot() +
+		  annotate( geom= "rect", fill= m$p$clr$drk_gry, alpha= 0.5,
+					      xmin= -Inf, xmax= +Inf, ymin= -Inf, ymax= +Inf) +
+		  scale_y_continuous( expand= expansion(mult = 0, add = 0)) +
+		  scale_x_continuous( expand= expansion(mult = 0.004, add = 0)) +
+		  theme( plot.background= element_rect( fill= "grey95", colour= NA),
+				       panel.background= element_rect( fill= "grey95", colour= NA))
+	      #ggplot() + theme_void() + annotate( geom= "rect", fill= m$p$drk_gry, alpha= 0.25)
+	      if( k < 998) m$o$plt2 <- m$f$plt( tp= FALSE, j= j-1, k= k)
+	      if( j!= 5 & k == 999) m$o$plt2 <- m$f$plt( tp= FALSE, j= j, k= k)
+	      if( j!= 5 & k == 1000) m$o$plt2 <- m$f$plt( tp= FALSE, j= j, k= k)
+	      grid.arrange( m$o$hdr_plt, m$o$plt1, m$o$plt2, m$o$ftr_plt,
+			   padding= unit( 0, "line"),
+			   heights= c( 25, 750/2, 750/2 , 15))
 	  }
       }
-  }, movie.name = "catch_up_with_the_sun.gif", ani.width = 750, ani.height = 1200)
+  }, movie.name = "catch_up_with_the_sun.gif", ani.width = 500, ani.height = 800)
 
-  # Let's plot it!
-  #saveGIF({ ani.options(interval = 2, nmax = 75)
-
-  for( j in NULL){
-      print(
-	  ggplot( data= m$o$ermny) +
-	  # lines
-	  geom_line( mapping= aes( x= yr, y= shr, group= lp),
-		    colour= m$p$clr$drk_gry) +
-	  # labels
-	  geom_text( data= function( x)
-	      x[ lp!= j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
-	      mapping= aes( x= yr + 3/12, y= shr, label= paste( lp), hjust= 0),
-	      colour= m$p$clr$drk_gry, size= 5) +
-	  # last point
-	  geom_point( data= function( x)
-	      x[ lp!= j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
-	      mapping= aes( x= yr, y= shr), 
-	      colour= m$p$clr$drk_gry, size= 3)+
-	  # highlighted line
-	  geom_line( data= function( x) x[ lp== j],
-		    mapping= aes( x= yr, y= shr),
-		    colour= m$p$clr$rd, size= 2) +
-	  # highlighted last point line
-	  geom_point(
-	      data= function( x) x[ lp== j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
-	      mapping= aes( x= yr, y= shr), 
-	      colour= m$p$clr$rd, size= 4)+
-	  # white background highlighted label
-	  geom_text( data= function( x)
-	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr][
-		  rep( 1, 4), .( yr, shr, rnk, x= c( 1/24, 0, -1/24, 0),
-				y= c( 0, 0.0002, 0, -0.0002),
-				lp)],
-	      mapping= aes( x= yr + 3/12 + x, y= shr+ y,
-			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100),1))),
-	      colour= "white", fontface= "bold", hjust= 0, size= 5) +
-	  # highlighted label
-	  geom_text( data= function( x)
-	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
-	      mapping= aes( x= yr + 3/12, y= shr,
-			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100, 1)))),
-		    fontface= "bold", hjust= 0, size= 5, colour= m$p$clr$rd) +
-	  # logo
-	  annotation_custom( m$p$eyesonfx_lg, xmin= 2022, xmax= 2025, ymin=0.195, ymax= 0.2) +
-	  # source
-	  annotate( geom= "text", x= 2020, y= -10, hjust= 1, vjust= 0, size= 5,
-		   label= "Source: Euromoney FX surveys", colour= m$p$clr$drk_gry) +
-	  annotate( geom= "segment", x= 2009.5, xend= 2019, y= 0, yend= 0, colour= m$p$clr$lght_lght_gry) +
-	  annotate( geom= "text", x= 2010:2019, y= -0.002, label= 2010:2019,
-		   size= 5) +
-	  annotate( geom= "segment", x= 2009.5, xend= 2009.5, y= 0, yend= 0.19, colour= m$p$clr$lght_lght_gry) +
-	  annotate( geom= "text", x= 2009, y= seq( 0.0, 0.175, 0.025), label= seq( 0.0, 0.175, 0.025),
-		   size= 5, hjust= 1) +
-	  # commentary
-	  geom_label( data= m$o$cmnts[ frm== j],
-		 mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
-		 alpha= 1.0, colour= "white", size= 6, fontface= "bold") +
-	  scale_x_continuous( limits= c( 2008, 2025), breaks= 2010:2019, expand= expansion(mult = 0, add = 0)) +
-	  scale_y_continuous( limits= c( -0.01, 0.2), expand= expansion(mult = 0, add = 0)) +
-  #      theme_grey()) 
-	theme_void()) 
-  #    geom_label( data= function( x) x[ n==0],
-  #	      mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
-  #	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
-  #	      hjust= 0, vjust= 0.5 ) +
-  }
-  #}
-  #, movie.name = "Whos_who.gif", ani.width = 500, ani.height = 800) 
-  #, movie.name = "Whats_what.mp4", ani.width = 750, ani.height = 1200) 
 #+END_SRC
 
 - Time of year
@@ -275,6 +348,184 @@ critical impact on the FX market.
 :END:
 Spot venues battle for market share.
 #+hugo: more
+*** Read in and summarise data
+#+BEGIN_SRC R
+
+  m$i$CBOE <- fread( "/Dnk/Srcs/CBOE_FX/Extrct/CBOE_FX_Vlm.csv")
+
+#+END_SRC
+
+- Time of year
+- Time of month
+- The working week
+- Time of the day
+- Intra-hour
+*** Analyse data
+#+BEGIN_SRC R
+  m$o$tr_fx <- rbindlist( list(
+      # each month over all 10 years
+      m$x$tr_fx$dly[ , .( grp1= 1, N= sum( N), N0= sum( N0)),
+		    .( lbl= as.character( year( fx_dy)), grp2= year( fx_dy),
+		      tm= as.numeric( as.yearmon( fx_dy)))],  
+  #    # each  month by year
+  #    m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), lbl= month.abb[ min( month( fx_dy))]),
+  #		  .( tm= month( fx_dy), grp1= year( fx_dy))], 
+      # each week of month by year
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), grp2= min( month( fx_dy)),
+			 lbl= month.abb[ min( month( fx_dy))]),
+		    .( tm= week( fx_dy), grp1= year( fx_dy))], 
+      # each working day of month by average month
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0)),
+		    .( lbl= substr( weekdays( fx_dy), 1, 1),
+			    tm= wday( fx_dy)- 1 + 5 * day( fx_dy) %/% 7,
+			    grp2= 5 * day( fx_dy) %/% 7, grp1= month( fx_dy))],
+      # each 15 minute slot of day
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( tm, "%H", tz= "Europe/London"), tm= as.numeric( floor_date( tm, "15 minute")),
+			grp2= hour( tm), grp1= wrk_dy_mnth)],
+      # each minute of hour
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( as.hms( floor_date( tm, "5 minute")), "%M"), tm= minute( tm),
+			grp2= as.numeric( as.hms( floor_date( tm, "5 minute"))), grp1= hour( tm))]),
+      idcol= "typ", use.names= TRUE)
+
+  # Index groups
+  # Ensure Order 
+  #m$o$tr_fx <- m$o$tr_fx[ order( typ, grp1, tm)]
+  m$o$tr_fx[ order( typ, grp1, tm), i:= 1:.N, .( typ, tm)]
+  m$o$tr_fx[ order( typ, grp1, tm), i2:= cumsum( fifelse( grp2== shift( grp2, fill= -1), 0, 1)), .( typ, grp1)] 
+  m$o$tr_fx[ typ== 3, i2:= tm]
+
+  # Highlight important times
+  m$o$tr_fx[ typ== 4 &
+	     tm %in% as.numeric( floor_date( as.POSIXct( c( "1970-01-01 07:00", "1970-01-01 13:00",
+							   "1970-01-01 16:00"),
+							tz= "Europe/London"), "15 minute")), clr:= m$p$clr$grn]
+
+  m$o$tr_fx[ typ== 4 &
+	     tm %in% as.numeric( floor_date( as.POSIXct( c( "1970-01-01 17:00"),
+							tz= "Europe/London"), "15 minute")), clr:= m$p$clr$rd]
+
+  # Highlight (average) week of UK Holidays
+  m$p$hldys <-  as.data.table( table( week( holidayLONDON( year= 2010:2019))))
+  setnames( m$p$hldys, c( "wk", "N"))
+  m$p$hldys[ , hldy:= c( "New Years", rep( "Easter", 5), rep( "May Day", 2), rep( "Last May Monday", 3),
+		       rep( "August Bank Holiday", 2),  "Christmas")]
+
+  m$o$tr_fx[ typ== 2 & tm %in%
+	     m$p$hldys[ , .( sum( N), wk= mean( as.numeric( wk))), hldy][ , round( wk)],
+	    clr:= m$p$clr$rd]
+
+  m$o$cmnts <- list(
+      3, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD")
+
+
+  m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
+				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
+  m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
+
+  m$p$prds <- data.table( lbl= c( "10 years", "Avg year", "Avg month", "Avg day", "Avg hour"),
+			 x= seq( 1, by= 70, length.out= 5), i= 1:5)
+
+
+
+  m$f$plt <- function( tp, j, k){
+      ggplot( data= m$o$tr_fx[ typ== j]) +
+	  # highlighted times
+	  geom_segment( data= function( x) x[ tp== TRUE & !is.na( clr),
+					     .( frst_grp1= min( grp1), grp1, clr, tm), .( lbl)][ frst_grp1== grp1],
+		       mapping= aes( x= tm, xend= tm, colour= I( clr)),
+		       size= 1, y= -Inf, yend= +Inf)+
+	  # lines for each group 
+	  geom_line( data= function( x) x[ tp== TRUE  & k< 998 & i<= k],
+		    mapping= aes( x= tm, y= N, group= grp1, 
+				 colour= I( c( "grey80", "grey50", rep( "grey20", 100))[ i])),
+		    size= 1.5, alpha= 0.75) +
+	  #geom_line( data= function( x) x[ tp== TRUE  & i <= k & k< 999],
+	  #          mapping= aes( x= tm, y= N, group= grp1), size= 2, colour= NA) +
+	  # total line for top graph 
+	  geom_line( data= function( x) x[ tp== TRUE & k >= 2 & i <= k, .( N= sum( N)), .( tm)],
+		    mapping= aes( x= tm, y= N),
+		    colour= "black", size= 1.5) +
+	  # total line for bottom graph
+	  geom_line( data= function( x) x[ tp== FALSE][ order( tm), .( N= sum( N), i2= min( i2)), .( tm)],
+		    mapping= aes( x= tm, y= N, 
+				 colour= I( ifelse( i2 > 0 & k >= 998, "black",
+						   c( "grey80", "grey50", rep( "grey20", 100))[ i2]))),
+		    size= 1.5, alpha= 0.75) +
+	  # labels - for groups
+	  geom_text( data= function( x) x[ tp== TRUE & k < 2, .( lbl, i2, grp1, mx_N= max(N), mn_N= min( N)), tm][
+					  , .( tm= min( tm), mx_N= max( mx_N), mn_N= min( mn_N), lbl= max( lbl)), i2][
+					   , .( tm, lbl, mx_N= max( mx_N), mn_N= min( mn_N))],
+		    mapping= aes( x= tm, label= lbl, y= floor( mn_N + ( mx_N- mn_N)* 0.97)),
+		    hjust= 0, size= 5, colour= "grey10", vjust= 1) +
+	  # vertical guideline labels - for total
+	  geom_text( data= function( x)
+	      x[tp== FALSE | ( k >= 2 & i <= k), .( lbl, i2, tm, N= sum(N)), tm][
+		, .( mn_tm= min( tm), lbl, tm, mx_N= max( N), mn_N= min( N)), .( i2)][
+		 ,.( tm= min( tm), lbl= max( lbl), mx_N= max( mx_N), mn_N= min( mn_N)), i2][
+		, .( lbl, tm, mx_N= max( mx_N), mn_N= min( mn_N))][ order( tm)],
+		    mapping= aes( x= tm, label= lbl, y= floor( mn_N + ( mx_N- mn_N)* 0.97)),
+		    hjust= 0, size= 5, colour= "grey10", vjust= 1) +
+	  # vertical guidelines
+	  geom_segment( data= function( x) x[ tp== FALSE & k != 999,
+					     .( frst_tm= min( tm), tm), .( i2)][ frst_tm== tm],
+		       mapping= aes( x= tm, xend= tm), y= -Inf, yend= +Inf, colour= m$p$clr$lght_gry) +
+	  # shading for bottom plot
+	  geom_rect( data= function( x) x[ tp== FALSE & typ== j & ( k>= 998 | i2> k),
+					  .( mn= min( tm), mx= max( tm))],
+		    mapping= aes( xmin= mn, xmax= mx),
+		    fill= m$p$clr$drk_gry, alpha= 0.5, ymin= -Inf, ymax= Inf) +
+	  scale_y_continuous( expand= expansion(mult = 0, add = 0)) +
+	  scale_x_continuous( expand= expansion(mult = 0.004, add = 0)) +
+  #        scale_colour_manual( values= rep( c( "grey80", "grey50", "grey20"), 300), guide= NULL) +
+	  theme_void() +
+		  theme( plot.background= element_rect( fill= "grey95", colour= NA),
+				       panel.background= element_rect( fill= "grey95", colour= NA))
+  }
+
+
+  m$o$ftr_plt <- m$p$ftr_plt
+  saveGIF({ ani.options(interval = 1, nmax = 75)
+      for( j in m$o$tr_fx[ , .N, typ][ , typ][]){
+	  m$o$hdr_plt <- m$p$hdr_plt +
+	      geom_rect( data= m$p$prds, mapping= aes( xmin= x, xmax= x+ 70,
+						       fill= I( ifelse( i== j, m$p$clr$bckgrnd_gry, m$p$clr$lght_gry))),
+						       ymin= 0, ymax= 25, colour= m$p$clr$bckgrnd_gry) +
+	      geom_text( data= m$p$prds, mapping= aes( x= x + 70/2, label= lbl,
+						      colour= I( ifelse( i== j, "black", m$p$clr$drk_gry))),
+		y= 12, size= 5)
+
+	  for( k in c( 1, 2, 3, 4, m$o$tr_fx[ typ== j, max( i)], 998: 1000)){
+	      if( j== 1 & k < 998)
+		  next
+	      m$o$plt1 <- m$f$plt( tp= TRUE, j= j, k= k)
+	      m$o$plt2 <-
+		  ggplot() +
+		  annotate( geom= "rect", fill= m$p$clr$drk_gry, alpha= 0.5,
+					      xmin= -Inf, xmax= +Inf, ymin= -Inf, ymax= +Inf) +
+		  scale_y_continuous( expand= expansion(mult = 0, add = 0)) +
+		  scale_x_continuous( expand= expansion(mult = 0.004, add = 0)) +
+		  theme( plot.background= element_rect( fill= "grey95", colour= NA),
+				       panel.background= element_rect( fill= "grey95", colour= NA))
+	      #ggplot() + theme_void() + annotate( geom= "rect", fill= m$p$drk_gry, alpha= 0.25)
+	      if( k < 998) m$o$plt2 <- m$f$plt( tp= FALSE, j= j-1, k= k)
+	      if( j!= 5 & k == 999) m$o$plt2 <- m$f$plt( tp= FALSE, j= j, k= k)
+	      if( j!= 5 & k == 1000) m$o$plt2 <- m$f$plt( tp= FALSE, j= j, k= k)
+	      grid.arrange( m$o$hdr_plt, m$o$plt1, m$o$plt2, m$o$ftr_plt,
+			   padding= unit( 0, "line"),
+			   heights= c( 25, 750/2, 750/2 , 15))
+	  }
+      }
+  }, movie.name = "catch_up_with_the_sun.gif", ani.width = 500, ani.height = 800)
+
+#+END_SRC
+
+- Time of year
+- Time of month
+- The working week
+- Time of the day
+- Intra-hour
 
 ** Who's who in the Zoo                                                 :Who:
    SCHEDULED: <2020-03-02 Mon>
@@ -780,7 +1031,7 @@ The market has grown every period, sa
 	  stop("Unexpected parameter length for 'cat.fontfamily'")
       }
       if (!(class(cat.just) == "list" & length(cat.just) == 4 & 
-	  length(cat.just[[G1]]) == 2 & length(cat.just[[2]]) == 
+	  length(cat.just[[1]]) == 2 & length(cat.just[[2]]) == 
 	  2 & length(cat.just[[3]]) == 2 & length(cat.just[[4]]) == 
 	  2)) {
 	  flog.error("Unexpected parameter format for 'cat.just'", 
@@ -957,6 +1208,9 @@ The market has grown every period, sa
 
   m$p$sqnc <- c( 14, 9, 15, 1, 13, 4, 12, 3, 8, 11, 10, 5, 2, 7, 6) 
 
+  # Use standard font
+  showtext_auto()
+
   for( i in 1:( length( m$p$sqnc)+ 1))
       {
       grid.newpage(recording = TRUE)
@@ -971,10 +1225,12 @@ The market has grown every period, sa
       category = c("Comms", "FX", "Maths / Stats", "Data / IT"),
       fill = c("black", m$p$clr$grn, m$p$clr$rd, "grey"), lwd= 0,
       lty = c("solid", "solid", "solid", "solid"),
+      fontfamily= "Merriweather",
       cex = 1,
       cat.cex = m$p$ctgrs[ i, ]* 1.5,
-      cat.col = c("black", m$p$clr$grn, m$p$clr$rd, "dark grey")
-  )}
+      cat.col = c("black", m$p$clr$grn, m$p$clr$rd, "dark grey"),
+      cat.fontfamily= "Quantico")
+      }
 #+END_SRC
 
 This is my very first blog post! In it I will explain how I came up with
