@@ -350,7 +350,7 @@ critical impact on the FX market.
 :PROPERTIES:
 :EXPORT_FILE_NAME: location_location_location
 :END:
-[[file:animPolyline.svg]]
+[[file:animPolyline2.svg]]
 Spot venues battle for market share.
 #+hugo: more
 *** Read in and summarise data
@@ -497,11 +497,11 @@ Spot venues battle for market share.
       geom_text( data= function( x) x[ , .( adv, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
 				      mapping= aes( x= mnth+ days( 10), y= adv, label= vn_nm),
-		colour= m$p$clr$gry, hjust= 0, size= 3) +
+		colour= m$p$clr$gry, hjust= 0, size= 5) +
       geom_text( data= function( x) x[ , .( adv, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
 				      mapping= aes( x= mnth+ days( 10), y= adv, label= vn_nm),
-		colour= m$p$clr$rd, hjust= 0, size= 3) +
+		colour= m$p$clr$rd, hjust= 0, size= 5) +
       theme_void() +
       scale_x_datetime( limits= as.POSIXct( unlist( m$o$vns[ , .( min( mnth), max( mnth) + months( 15))]),
 					   origin= "1970-01-01")) +
@@ -524,11 +524,11 @@ Spot venues battle for market share.
       geom_text( data= function( x) x[ , .( adv_shr, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
 				      mapping= aes( x= mnth+ days( 10), y= adv_shr, label= vn_nm),
-		colour= m$p$clr$gry, hjust= 0, size= 3) +
+		colour= m$p$clr$gry, hjust= 0, size= 5) +
       geom_text( data= function( x) x[ , .( adv_shr, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
 				      mapping= aes( x= mnth+ days( 10), y= adv_shr, label= vn_nm),
-		colour= m$p$clr$rd, hjust= 0, size= 3) +
+		colour= m$p$clr$rd, hjust= 0, size= 5) +
       theme_void() +
       scale_x_datetime( limits= as.POSIXct( unlist( m$o$vns[ , .( min( mnth), max( mnth) + months( 15))]),
 					   origin= "1970-01-01")) +
@@ -539,10 +539,11 @@ Spot venues battle for market share.
   grid.arrange( m$o$hdr_plt, m$o$plt2, m$o$ftr_plt,
 			     padding= unit( 0, "line"),
 			     heights= c( 25, 750, 15))
-	                    
+
   grid.force()
   m$p$ln2 <- lapply( grep( "GRID.polyline", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
   m$p$txt2 <- lapply( grep( "GRID.text", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$icn <- lapply( grep( "GRID.rastergrob", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[[1]]
 
   # Define animation
   m$p$anmtn <- vec(
@@ -551,6 +552,10 @@ Spot venues battle for market share.
       atomic( label= "end", durn= 3)
   )
 
+  # Dummy animation to coordinate timing of other animations
+
+  grid.animate( m$p$icn$name, visibility= c( "visible", "visible"),
+	       begin= "0;anmtn_dmy_id.end", duration= 12)
 
   grid.animate( m$p$ln2[[2]]$name, visibility= animValue( fifelse(
 							    c( as.logical( diag( length( m$p$ln2[[2]]$gp$col))),
@@ -558,7 +563,7 @@ Spot venues battle for market share.
 							"visible", "hidden"),
 						   id= rep( 1:(length( m$p$ln2[[2]]$gp$col)),
 							   length( m$p$ln2[[2]]$gp$col)+ 1)),
-				    begin= 0, duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
 
   grid.animate( m$p$txt2[[2]]$name, visibility= animValue( fifelse(
 							    c( as.logical( diag( length( m$p$txt2[[2]]$gp$col))),
@@ -566,37 +571,28 @@ Spot venues battle for market share.
 							"visible", "hidden"),
 						   id= rep( 1:(length( m$p$txt2[[2]]$gp$col)),
 							   length( m$p$txt2[[2]]$gp$col)+ 1)),
-				    begin= 0, duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
 
-  grid.export( "animPolyline.svg")
-
-  lapply( timing( m$p$anmtn), function( x){
-      switch( x$label,
-	     cycl_clr= grid.animate( m$p$ln2[[2]]$name, visibility= animValue( fifelse(
-							    c( as.logical( diag( length( m$p$ln2[[2]]$gp$col))),
-							      rep( FALSE, length( m$p$ln2[[2]]$gp$col)))== TRUE,
-							"visible", "hidden"),
-						   id= rep( 1:(length( m$p$ln2[[2]]$gp$col)),
-							   length( m$p$ln2[[2]]$gp$col)+ 1)),
-				    begin= x$start, duration= x$durn),
-           
-	     adv_2_shr= grid.animate( m$p$ln2[[1]]$name,
+  grid.animate( m$p$ln2[[1]]$name,
 		   y= animUnit( x= unit( c( m$p$ln1[[1]]$y, m$p$ln2[[1]]$y), unit= "native"),
 			       id= rep( m$p$ln2[[1]]$id, by= 2),
 			       timeid= rep( 1:2, each= length( m$p$ln2[[1]]$id))),
-		   begin= x$start, duration= x$durn, rep= TRUE),
-           
-	     end= grid.animate( m$p$ln2[[1]]$name,
-		   y= animUnit( x= m$p$ln2[[1]]$y,
-			       id= rep( m$p$ln1[[1]]$id, 1),
-			       timeid= rep( 1, each= length( m$p$ln1[[1]]$id))),
-		   begin= x$start, duration= x$durn, rep= TRUE)
-	     )})
-	   #rep= TRUE)
+	       begin= paste0( "anmtn_dmy_id.begin+", 7), duration= 5)
 
 
+  grid.export( "animPolyline.svg")
 
+  m$o$svg <- readLines( "animPolyline.svg", warn= FALSE)
 
+  m$o$svg <- gsub( '<animate xlink:href="#GRID.rastergrob',
+		   '<animate id="anmtn_dmy_id" xlink:href="#GRID.rastergrob', m$o$svg)
+
+  m$o$svg <- gsub( '"0;anmtn_dmy_id.ends"',
+		   '"0;anmtn_dmy_id.end"', m$o$svg)
+
+  tmp <- file( "animPolyline2.svg", "w")
+  writeLines( m$o$svg, con = tmp, sep = "\n", useBytes = FALSE)
+  close( tmp)
 
 
 #+END_SRC

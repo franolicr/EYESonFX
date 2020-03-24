@@ -6,7 +6,7 @@ tags = ["Where"]
 draft = false
 +++
 
-![](/ox-hugo/animPolyline.svg)
+![](/ox-hugo/animPolyline2.svg)
 Spot venues battle for market share.
 
 <!--more-->
