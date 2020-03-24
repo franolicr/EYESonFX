@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="471.14px" height="431.52px" viewBox="0 0 471.14 431.52" version="1.1">
+  <metadata xmlns:gridsvg="http://www.stat.auckland.ac.nz/~paul/R/gridSVG/">
+    <gridsvg:generator name="gridSVG" version="1.7-1" time="2020-03-22 08:10:48"/>
+    <gridsvg:argument name="name" value="animPolyline2.svg"/>
+    <gridsvg:argument name="exportCoords" value="none"/>
+    <gridsvg:argument name="exportMappings" value="none"/>
+    <gridsvg:argument name="exportJS" value="none"/>
+    <gridsvg:argument name="res" value="72"/>
+    <gridsvg:argument name="prefix" value=""/>
+    <gridsvg:argument name="addClasses" value="FALSE"/>
+    <gridsvg:argument name="indent" value="TRUE"/>
+    <gridsvg:argument name="htmlWrapper" value="FALSE"/>
+    <gridsvg:argument name="usePaths" value="vpPaths"/>
+    <gridsvg:argument name="uniqueNames" value="TRUE"/>
+    <gridsvg:separator name="id.sep" value="."/>
+    <gridsvg:separator name="gPath.sep" value="::"/>
+    <gridsvg:separator name="vpPath.sep" value="::"/>
+  </metadata>
+  <g transform="translate(0, 431.52) scale(1, -1)">
+    <g id="gridSVG" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="none" stroke-width="0.75" font-size="12" font-family="Helvetica, Arial, FreeSans, Liberation Sans, Nimbus Sans L, sans-serif" opacity="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-opacity="1" fill-opacity="0" font-weight="normal" font-style="normal">
+      <g id="GRID.rect.30459.1">
+        <rect id="GRID.rect.30459.1.1" x="0" y="0" width="471.14" height="431.52" transform=""/>
+      </g>
+      <animate xlink:href="#polyline.1.1" attributeName="points" begin="0s" calcMode="linear" dur="1s" values="94.23,302.06 141.34,215.76 188.46,302.06;94.23,129.46 141.34,215.76 188.46,129.46;94.23,302.06 141.34,215.76 188.46,302.06" repeatCount="indefinite" fill="freeze"/>
+      <animate xlink:href="#polyline.1.2" attributeName="points" begin="0s" calcMode="linear" dur="1s" values="282.68,129.46 329.8,215.76 376.91,129.46;282.68,302.06 329.8,215.76 376.91,302.06;282.68,129.46 329.8,215.76 376.91,129.46" repeatCount="indefinite" fill="freeze"/>
+      <animate xlink:href="#polyline.1.1" attributeName="points" begin="0s" calcMode="linear" dur="1s" values="94.23,302.06 141.34,215.76 188.46,302.06;94.23,129.46 141.34,215.76 188.46,129.46;94.23,302.06 141.34,215.76 188.46,302.06" repeatCount="indefinite" fill="freeze"/>
+      <animate xlink:href="#polyline.1.2" attributeName="points" begin="0s" calcMode="linear" dur="1s" values="282.68,129.46 329.8,215.76 376.91,129.46;282.68,302.06 329.8,215.76 376.91,302.06;282.68,129.46 329.8,215.76 376.91,129.46" repeatCount="indefinite" fill="freeze"/>
+      <animate xlink:href="#polyline.1.1" attributeName="points" begin="0s" calcMode="linear" dur="1s" values="94.23,302.06 141.34,215.76 188.46,302.06;94.23,129.46 141.34,215.76 188.46,129.46;94.23,302.06 141.34,215.76 188.46,302.06" repeatCount="indefinite" fill="freeze"/>
+      <animate xlink:href="#polyline.1.2" attributeName="points" begin="0s" calcMode="linear" dur="1s" values="282.68,129.46 329.8,215.76 376.91,129.46;282.68,302.06 329.8,215.76 376.91,302.06;282.68,129.46 329.8,215.76 376.91,129.46" repeatCount="indefinite" fill="freeze"/>
+      <g id="polyline.1">
+        <polyline id="polyline.1.1" points="94.23,302.06 141.34,215.76 188.46,302.06" stroke-width="3.75" fill="none"/>
+        <polyline id="polyline.1.2" points="282.68,129.46 329.8,215.76 376.91,129.46" stroke-width="3.75" fill="none"/>
+      </g>
+      <g id="polyline.2">
+        <polyline id="polyline.2.1" points="94.23,302.06 141.34,215.76 188.46,302.06" stroke-width="3.75" fill="none"/>
+        <polyline id="polyline.2.2" points="282.68,129.46 329.8,215.76 376.91,129.46" stroke-width="3.75" fill="none"/>
+      </g>
+      <g id="polyline.3">
+        <polyline id="polyline.3.1" points="94.23,302.06 141.34,215.76 188.46,302.06" stroke-width="3.75" fill="none"/>
+        <polyline id="polyline.3.2" points="282.68,129.46 329.8,215.76 376.91,129.46" stroke-width="3.75" fill="none"/>
+      </g>
+    </g>
+  </g>
+</svg>
