@@ -6,7 +6,7 @@ tags = ["Who"]
 draft = false
 +++
 
-{{<figure src="Whos_who.gif">}}
+{{<figure src="/ox-hugo/Whos_who.gif">}}
 
 Using data from the annual Euromoney surveys, I explore who the most important players are in the FX market.
 

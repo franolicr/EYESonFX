@@ -8,12 +8,12 @@ draft = false
 
 {{< figure src="/ox-hugo/lctn_lctn_lctn.svg" >}}
 
-Location, location, location is an adage used
-in residential property market to stress the importance of a location
-to a property's value. Location is also important in FX markets, but
-here I use the expression to indicate that an FX trade may involve
-three different locations. Clearly both counterparties will be located
-somewhere, but the third, and probably the most important, location is
+Location, location, location is an adage used in residential property
+market to stress the importance of location to a property's
+value. Location is also important in FX markets, but here I also use
+the expression to indicate that an FX trade may involve three
+locations. Clearly both counterparties to the trade will be located
+somewhere, but the third, and probably the most important location, is
 where the trade itself is transaacted. The majority of FX trades are
 transacted electronically on different 'venues'. In this article, I
 explore how activity is distributed across these venues and how it has

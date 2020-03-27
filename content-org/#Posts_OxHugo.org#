@@ -382,7 +382,7 @@ critical impact on the FX market.
 
 #+begin_export html
 <img src="/ox-hugo/lctn_lctn_lctn.svg" alt="A photo of our employees" class="left">
-#+end_export
+#+end_export 
 Location, location, location is an adage used in residential property
 market to stress the importance of location to a property's
 value. Location is also important in FX markets, but here I also use
@@ -394,6 +394,7 @@ transacted electronically on different 'venues'. In this article, I
 explore how activity is distributed across these venues and how it has
 evolved over time.
 #+hugo: more
+
 *** Read in and summarise data
 #+BEGIN_SRC R
   m$i <- list()
