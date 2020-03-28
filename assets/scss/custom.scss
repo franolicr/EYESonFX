@@ -829,9 +829,15 @@ pre {
   .col-md-5 {
     flex: 0 0 41.66666667%;
     max-width: 41.66666667%; }
+  /* RF */
+  /*
   .col-md-6 {
     flex: 0 0 50%;
     max-width: 50%; }
+  */
+  .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%; }
   .col-md-7 {
     flex: 0 0 58.33333333%;
     max-width: 58.33333333%; }
@@ -941,6 +947,7 @@ pre {
   .col-lg-3 {
     flex: 0 0 25%;
     max-width: 25%; }
+/* RF */  
 /*  .col-lg-4 {
     flex: 0 0 33.33333333%;
     max-width: 33.33333333%; } */
@@ -950,6 +957,7 @@ pre {
   .col-lg-5 {
     flex: 0 0 41.66666667%;
     max-width: 41.66666667%; }
+/* RF */  
 /*  .col-lg-6 {
     flex: 0 0 50%;
     max-width: 50%; } */
@@ -959,6 +967,7 @@ pre {
   .col-lg-7 {
     flex: 0 0 58.33333333%;
     max-width: 58.33333333%; }
+/* RF */  
 /*  .col-lg-8 {
     flex: 0 0 66.66666667%;
     max-width: 66.66666667%; } */
@@ -8412,7 +8421,9 @@ ul.share li:hover i {
   padding-top: 50px; }
 
 .home-section:nth-of-type(even) {
-  background-color: #f7f7f7; }
+/* RF change background */
+/*  background-color: #f7f7f7; }*/
+  background-color: white; }
 
 .dark .home-section {
   background-color: #272935; }
@@ -9142,7 +9153,7 @@ div.mermaid {
   text-align: center;
   margin-bottom: 1rem; }
 
-/* Additional CSS from RF */
+/* RF - Additional CSS */
 .left {
  float: left;
 }

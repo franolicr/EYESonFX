@@ -1,5 +1,5 @@
 #+DRAFT: true
-#+HUGO_SECTION: project
+#+HUGO_SECTION: post
 #+HUGO_BASE_DIR: ~/eyesonfx
 #+EXPORT_HUGO_BUNDLE: page-bundle-images-in-same-dir
 #+PROPERTY: header-args:R  :session *R* :results replace :tangle yes :eval no :exports none
@@ -382,19 +382,21 @@ critical impact on the FX market.
 
 #+begin_export html
 <img src="/ox-hugo/lctn_lctn_lctn.svg" alt="A photo of our employees" class="left">
-#+end_export
-Location, location, location is an adage used in residential property
-market to stress the importance of location to a property's
-value. Location is also important in FX markets, but here I also use
-the expression to indicate that an FX trade may involve three
-locations. Clearly both counterparties to the trade will be located
-somewhere, but the third, and probably the most important location, is
-where the trade itself is transaacted. The majority of FX trades are
-transacted electronically on different 'venues'. In this article, I
-explore how activity is distributed across these venues and how it has
-evolved over time.
+#+end_export 
+Location, location, location is a mantra used in the property market
+to stress the importance of location to a property's value. Location
+is also important in FX markets, but here I use the expression to
+indicate that an FX trade may involve three locations. Clearly both
+counterparties to the trade will be located somewhere, but the third,
+and probably the most important location, is where those
+counterparties come together to execute the trade. The majority of FX
+trades are executed electronically on different trading 'venues'. In
+this article, I explore the distribution of activity across these
+venues and how it has evolved over time.
 #+hugo: more
-*** Read in and summarise data
+
+*** Read in and summarise data                                     :noexport:
+
 #+BEGIN_SRC R
   m$i <- list()
   m$x <- list()
@@ -512,7 +514,7 @@ evolved over time.
   m$o$vns[ , vn_nm:= factor( vn_nm, m$o$vns[ mnth== max( mnth), adv, vn_nm][ order( adv), vn_nm])]
   m$o$vns <- m$o$vns[ order( vn, mnth)]
 #+END_SRC
-*** Show data
+*** Show data                                                      :noexport:
 #+BEGIN_SRC R
   quartz( width= 5, height= 8)
 
