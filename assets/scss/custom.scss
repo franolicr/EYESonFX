@@ -9157,3 +9157,9 @@ div.mermaid {
 .left {
  float: left;
 }
+
+.clearfix::after {
+  content: "";
+  clear: both;
+  display: table;
+}

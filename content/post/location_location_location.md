@@ -6,7 +6,7 @@ tags = ["Where"]
 draft = false
 +++
 
-<img src="/ox-hugo/lctn_lctn_lctn.svg" alt="A photo of our employees" class="left">
+{{< figure src="/ox-hugo/lctn_lctn_lctn.svg" >}}
 
 Location, location, location is a mantra used in the property market
 to stress the importance of location to a property's value. Location
@@ -16,7 +16,8 @@ counterparties to the trade will be located somewhere, but the third,
 and probably the most important location, is where those
 counterparties come together to execute the trade. The majority of FX
 trades are executed electronically on different trading 'venues'. In
-this article, I explore the distribution of activity across these
-venues and how it has evolved over time.
+this article, using monthly data published by the venues, I explore
+the distribution of activity across them and how it has evolved over
+time.
 
 <!--more-->

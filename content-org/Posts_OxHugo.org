@@ -41,12 +41,20 @@
   m$p$clr$bckgrnd_gry <- "grey95"
 
   # Logo  
-  m$p$plt$eyesonfx_lg <- readPNG( "/Users/rfranolic/eyesonfx/assets/images/eyesonfx.png")
+  m$p$plt$eyesonfx_lg <- readPNG( "/Users/rfranolic/eyesonfx/assets/images/logo.png")
 
 
-  # Plot function
-  m$f$plt <- function( ttl= "Title",
+  # Function to plot 
+  m$f$plt <- function( plt= ggplot(), ttl= "Title",
 		      sbttl= "Subtitle, much longer longer with more details", src= "Source: source"){
+
+      grid.newpage()
+
+      grid.arrange( rectGrob( gp= gpar( fill= m$p$clr$bckgrnd_gry, col= NA)), plt,
+	       rectGrob( gp= gpar( fill= m$p$clr$bckgrnd_gry, col= NA)),
+	       padding= unit( 0, "line"),
+	       heights= c( 25, 750, 15))
+
       grid.raster( image= m$p$plt$eyesonfx_lg, x= 1- 0.0015, y= 1- 0.0015, vjust= 1, hjust= 1,
 		  height= 0.035, name= )
       grid.text( name= "title", label= ttl, x = unit(0.01, "npc"), y = unit(1- 0.01, "npc"),
@@ -61,6 +69,23 @@
 		 hjust = 1, vjust = 0, rot = 0,
 		check.overlap = FALSE, default.units = "npc",
 		gp = gpar( fontsize= 12, col= m$p$clr$gry), draw = TRUE, vp = NULL)
+  }
+
+  # Function to save as SVG
+  m$f$sv_svg <- function( fl= "filepath"){
+      # Initial write
+      grid.export( fl)
+      # Read back in 
+      m$o$svg <- readLines( fl, warn= FALSE)
+      # Amend xml to add id 
+      m$o$svg <- gsub( '<animate xlink:href="#GRID.rastergrob',
+		   '<animate id="anmtn_dmy_id" xlink:href="#GRID.rastergrob', m$o$svg)
+      m$o$svg <- gsub( '"0;anmtn_dmy_id.ends"',
+		      '"0;anmtn_dmy_id.end"', m$o$svg)
+      # Write back file
+      tmp <- file( fl, "w")
+      writeLines( m$o$svg, con = tmp, sep = "\n", useBytes = FALSE)
+      close( tmp)
   }
 
   garnishAllGrobs <- function( elt) {
@@ -379,10 +404,10 @@ critical impact on the FX market.
 :PROPERTIES:
 :EXPORT_FILE_NAME: location_location_location
 :END:
+file:lctn_lctn_lctn.svg
 
-#+begin_export html
-<img src="/ox-hugo/lctn_lctn_lctn.svg" alt="A photo of our employees" class="left">
-#+end_export 
+
+
 Location, location, location is a mantra used in the property market
 to stress the importance of location to a property's value. Location
 is also important in FX markets, but here I use the expression to
@@ -391,8 +416,9 @@ counterparties to the trade will be located somewhere, but the third,
 and probably the most important location, is where those
 counterparties come together to execute the trade. The majority of FX
 trades are executed electronically on different trading 'venues'. In
-this article, I explore the distribution of activity across these
-venues and how it has evolved over time.
+this article, using monthly data published by the venues, I explore
+the distribution of activity across them and how it has evolved over
+time.
 #+hugo: more
 
 *** Read in and summarise data                                     :noexport:
@@ -516,7 +542,12 @@ venues and how it has evolved over time.
 #+END_SRC
 *** Show data                                                      :noexport:
 #+BEGIN_SRC R
-  quartz( width= 5, height= 8)
+  quartz( width= 1.25 * 5, height= 1.25 * 8)
+
+  # adjustment for labels
+  m$o$vns[ , adj_adv_shr:= adv_shr + fifelse( vn== "CBOE", 0.25 * 1/125,
+					     fifelse( vn== "intgrl", -0.25 * 1/125, 0))]
+  m$o$vns[ , adj_adv:= adv + fifelse( vn== "CBOE", 1, fifelse( vn== "intgrl", -1, 0))]
 
   m$o$plt1 <- ggplot( data= m$o$vns[ mnth< '2025-01-01']) +
   #m$o$plt1 <- ggplot( data= m$o$vns) +
@@ -533,13 +564,13 @@ venues and how it has evolved over time.
 		colour= m$p$clr$drk_gry, size= 1) +
       geom_line( mapping= aes( x= mnth, y= adv_shr, group= vn),
 		colour= m$p$clr$rd, size= 2) +
-      geom_text( data= function( x) x[ , .( adv_shr, mnth, mx= max( mnth)) , vn_nm][
+      geom_text( data= function( x) x[ , .( adj_adv_shr, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
-				      mapping= aes( x= mnth+ days( 10), y= adv_shr, label= vn_nm),
+		mapping= aes( x= mnth+ days( 10), y= adj_adv_shr, label= vn_nm),
 	      , colour= m$p$clr$drk_gry, hjust= 0, size= 5) +
-      geom_text( data= function( x) x[ , .( adv_shr, mnth, mx= max( mnth)) , vn_nm][
+      geom_text( data= function( x) x[ , .( adj_adv_shr, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
-				      mapping= aes( x= mnth+ days( 10), y= adv_shr, label= vn_nm),
+				      mapping= aes( x= mnth+ days( 10), y= adj_adv_shr, label= vn_nm),
 		colour= m$p$clr$rd, fontface= "bold", hjust= 0, size= 5) +
       theme_void() +
       scale_y_continuous( limits= c( 0, .25)) +
@@ -550,10 +581,8 @@ venues and how it has evolved over time.
       theme( plot.background= element_rect( fill= "grey95", colour= NA),
 	    panel.background= element_rect( fill= "grey95", colour= NA), legend.position= "none")
 
-  grid.newpage()
-  grid.arrange( m$o$hdr_plt, m$o$plt1, m$o$ftr_plt,
-		padding= unit( 0, "line"),
-	       heights= c( 25, 750, 15))
+  m$f$plt( plt= m$o$plt1, ttl= "Volumes by venue", sbttl= "Average daily spot volume each month to Febraury 2020",
+	  src= "Source: Venues' websites")
 
   grid.force()
   m$p$ln1 <- lapply( grep( "GRID.polyline", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
@@ -575,13 +604,13 @@ venues and how it has evolved over time.
 		colour= m$p$clr$drk_gry, size= 1) +
       geom_line( mapping= aes( x= mnth, y= adv, group= vn),
 		colour= m$p$clr$rd, size= 2) +
-      geom_text( data= function( x) x[ , .( adv, mnth, mx= max( mnth)) , vn_nm][
+      geom_text( data= function( x) x[ , .( adj_adv, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
-				      mapping= aes( x= mnth+ days( 10), y= adv, label= vn_nm),
+				      mapping= aes( x= mnth+ days( 10), y= adj_adv, label= vn_nm),
 		colour= m$p$clr$drk_gry, fontface= "bold", hjust= 0, size= 5) +
-      geom_text( data= function( x) x[ , .( adv, mnth, mx= max( mnth)) , vn_nm][
+      geom_text( data= function( x) x[ , .( adj_adv, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
-				      mapping= aes( x= mnth+ days( 10), y= adv, label= vn_nm),
+				      mapping= aes( x= mnth+ days( 10), y= adj_adv, label= vn_nm),
 		colour= m$p$clr$rd, fontface= "bold", hjust= 0, size= 5) +
       theme_void() +
       scale_x_datetime( limits= as.POSIXct( unlist( m$o$vns[ , .( min( mnth)- months( 3),
@@ -591,27 +620,19 @@ venues and how it has evolved over time.
       scale_y_continuous( limits= c( 0, 125)) +
       theme( plot.background= element_rect( fill= "grey95", colour= NA),
 	    panel.background= element_rect( fill= "grey95", colour= NA), legend.position= "none") +
-      annotate( label= "1. Very variable with Feb\nspike across all venues",
+      annotate( label= "1. High volume volatility over time,\npeak across all venues in Feb 2020",
 	       x= as.POSIXct( "2020-01-15"), y= 123, hjust= 1, vjust= 1, alpha= .8,
 	       geom= "label", colour= "white", fill= m$p$clr$rd, size= 5, fontface= "bold") +
-      annotate( label= "2. Normalize by dividing\nby CLS volumes",
+      annotate( label= "2. Reduce variability by\nnormalizing with CLS volumes",
 	       x= as.POSIXct( "2018-01-15"), y= 73, hjust= 0.5, vjust= 1, alpha= .6,
 	       geom= "label", colour= "white", fill= "black", size= 5, fontface= "bold") +
-      annotate( label= "3. Reduced variability\nreveals relative growth",
+      annotate( label= "3. Reduced variability better\nreveals venue growth",
 	       x= as.POSIXct( "2020-01-15"), y= 73, hjust= 1, vjust= 1, alpha= .8,
 	       geom= "label", colour= "white", fill= m$p$clr$rd, size= 5, fontface= "bold") +
       annotate( x= as.POSIXct( "2020-02-01"), xend= as.POSIXct( "2020-02-01"),
 	       y= 0, yend= 125, geom= "segment", colour= m$p$clr$rd, size= 1, alpha= 0.5)
 
-  grid.newpage()
-  grid.arrange( rectGrob( gp= gpar( fill= m$p$clr$bckgrnd_gry, col= NA)),
-	       m$o$plt2,
-	       rectGrob( gp= gpar( fill= m$p$clr$bckgrnd_gry, col= NA)),
-	       padding= unit( 0, "line"),
-	       heights= c( 25, 750, 15))
-
-
-  m$f$plt( ttl= "Spot volumes by venue", sbttl= "Average daily volume each month to Febraury 2018",
+  m$f$plt( plt= m$o$plt2, ttl= "Volumes by venue", sbttl= "Average daily spot volume each month to Febraury 2020",
 	  src= "Source: Venues' websites")
 
   #grid.text( name= "cmnt1", label= "Volumes pick up in February", x= 2/3, y = .45,
@@ -769,22 +790,7 @@ venues and how it has evolved over time.
   grid.animate( m$p$lbl2[[3]]$name, grep= TRUE, global= TRUE, visibility= "visible",
 	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
 
-  #addTooltips("animPolyline.svg")
-
-  grid.export( "lctn_lctn_lctn.svg")
-
-  m$o$svg <- readLines( "lctn_lctn_lctn.svg", warn= FALSE)
-
-  m$o$svg <- gsub( '<animate xlink:href="#GRID.rastergrob',
-		   '<animate id="anmtn_dmy_id" xlink:href="#GRID.rastergrob', m$o$svg)
-
-  m$o$svg <- gsub( '"0;anmtn_dmy_id.ends"',
-		   '"0;anmtn_dmy_id.end"', m$o$svg)
-
-  tmp <- file( "lctn_lctn_lctn.svg", "w")
-  writeLines( m$o$svg, con = tmp, sep = "\n", useBytes = FALSE)
-  close( tmp)
-
+  m$f$sv_svg( "lctn_lctn_lctn.svg")
 
 #+END_SRC
 
@@ -803,6 +809,99 @@ In my last post, I described what the main
 - Herfindahl Index?
 Concentration within the FX market
 - Rise of non-Bank liquidity providers
+
+#+BEGIN_SRC R
+  m$i$ermny <- fread( "/Dnk/Srcs/Ermny/Out/Ermny_Srvy.csv")
+
+  # restrict to top 10
+  m$x$ermny <- m$i$ermny[ rnk <= 10]
+  m$x$ermny[ lp== "Bank of America Merrill Lynch", lp:= "Bank of America"]
+
+  # Order by when LP's dropped out ( earliest first) then by rank in latest year
+  m$p$lps <- m$x$ermny[ , .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr][ order( lst_yr, shr)]
+  m$x$ermny[ , lp:= factor( lp, levels= m$p$lps$lp)]
+
+  m$x$ermny[ , hrfndl:= sum( shr^ 2), yr]
+
+  m$o$ermny <- m$x$ermny
+  # Commentary
+  m$o$cmnts <- list(
+      3, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD")
+
+  m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
+				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
+  m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
+
+  # Let's plot it!
+  saveGIF({ ani.options(interval = 2, nmax = 75)
+
+  for( j in m$o$ermny[ , .N, lp][ order( lp), lp]){
+      print(
+	  ggplot( data= m$o$ermny) +
+	  # lines
+	  geom_line( mapping= aes( x= yr, y= shr, group= lp),
+		    colour= m$p$clr$drk_gry) +
+	  # labels
+	  geom_text( data= function( x)
+	      x[ lp!= j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
+	      mapping= aes( x= yr + 3/12, y= shr, label= paste( lp), hjust= 0),
+	      colour= m$p$clr$drk_gry, size= 5) +
+	  # last point
+	  geom_point( data= function( x)
+	      x[ lp!= j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
+	      mapping= aes( x= yr, y= shr), 
+	      colour= m$p$clr$drk_gry, size= 3)+
+	  # highlighted line
+	  geom_line( data= function( x) x[ lp== j],
+		    mapping= aes( x= yr, y= shr),
+		    colour= m$p$clr$rd, size= 2) +
+	  # highlighted last point line
+	  geom_point(
+	      data= function( x) x[ lp== j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
+	      mapping= aes( x= yr, y= shr), 
+	      colour= m$p$clr$rd, size= 4)+
+	  # white background highlighted label
+	  geom_text( data= function( x)
+	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr][
+		  rep( 1, 4), .( yr, shr, rnk, x= c( 1/24, 0, -1/24, 0),
+				y= c( 0, 0.0002, 0, -0.0002),
+				lp)],
+	      mapping= aes( x= yr + 3/12 + x, y= shr+ y,
+			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100),1))),
+	      colour= "white", fontface= "bold", hjust= 0, size= 5) +
+	  # highlighted label
+	  geom_text( data= function( x)
+	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
+	      mapping= aes( x= yr + 3/12, y= shr,
+			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100, 1)))),
+		    fontface= "bold", hjust= 0, size= 5, colour= m$p$clr$rd) +
+	  # logo
+	  annotation_custom( m$p$eyesonfx_lg, xmin= 2022, xmax= 2025, ymin=0.195, ymax= 0.2) +
+	  # source
+	  annotate( geom= "text", x= 2020, y= -10, hjust= 1, vjust= 0, size= 5,
+		   label= "Source: Euromoney FX surveys", colour= m$p$clr$drk_gry) +
+	  annotate( geom= "segment", x= 2009.5, xend= 2019, y= 0, yend= 0, colour= m$p$clr$lght_lght_gry) +
+	  annotate( geom= "text", x= 2010:2019, y= -0.002, label= 2010:2019,
+		   size= 5) +
+	  annotate( geom= "segment", x= 2009.5, xend= 2009.5, y= 0, yend= 0.19, colour= m$p$clr$lght_lght_gry) +
+	  annotate( geom= "text", x= 2009, y= seq( 0.0, 0.175, 0.025), label= seq( 0.0, 0.175, 0.025),
+		   size= 5, hjust= 1) +
+	  # commentary
+	  geom_label( data= m$o$cmnts[ frm== j],
+		 mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
+		 alpha= 1.0, colour= "white", size= 6, fontface= "bold") +
+	  scale_x_continuous( limits= c( 2008, 2025), breaks= 2010:2019, expand= expansion(mult = 0, add = 0)) +
+	  scale_y_continuous( limits= c( -0.01, 0.2), expand= expansion(mult = 0, add = 0)) +
+  #      theme_grey()) 
+	theme_void()) 
+  #    geom_label( data= function( x) x[ n==0],
+  #	      mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
+  #	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
+  #	      hjust= 0, vjust= 0.5 ) +
+  }}
+  , movie.name = "Whos_who.gif", ani.width = 500, ani.height = 800) 
+  #, movie.name = "Whats_what.mp4", ani.width = 750, ani.height = 1200) 
+#+END_SRC
 
 #+BEGIN_SRC R
   m$i$ermny <- fread( "/Dnk/Srcs/Ermny/Out/Ermny_Srvy.csv")
