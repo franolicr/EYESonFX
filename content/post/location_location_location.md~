@@ -6,7 +6,7 @@ tags = ["Where"]
 draft = false
 +++
 
-<img src="/ox-hugo/lctn_lctn_lctn.svg" alt="A photo of our employees" class="left">
+{{< figure src="/ox-hugo/lctn_lctn_lctn.svg" >}}
 
 Location, location, location is a mantra used in the property market
 to stress the importance of location to a property's value. Location

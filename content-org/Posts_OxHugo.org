@@ -60,15 +60,15 @@
       grid.text( name= "title", label= ttl, x = unit(0.01, "npc"), y = unit(1- 0.01, "npc"),
 		 hjust = 0, vjust = 1, rot = 0,
 		check.overlap = FALSE, default.units = "npc",
-		gp = gpar( fontsize= 16, fontface= "bold"), draw = TRUE, vp = NULL)
-      grid.text( name= "subtitle", label= sbttl, x = unit(0.01, "npc"), y = unit(1- 0.045, "npc"),
+		gp = gpar( fontsize= 18, fontface= "bold"), draw = TRUE, vp = NULL)
+      grid.text( name= "subtitle", label= sbttl, x = unit(0.01, "npc"), y = unit(1- 0.04, "npc"),
 		 hjust = 0, vjust = 1, rot = 0,
 		check.overlap = FALSE, default.units = "npc",
-		gp = gpar( fontsize= 12), draw = TRUE, vp = NULL)
+		gp = gpar( fontsize= 14), draw = TRUE, vp = NULL)
       grid.text( name= "footer", label= src, x = unit(1- 0.005, "npc"), y = unit( 0.005, "npc"),
 		 hjust = 1, vjust = 0, rot = 0,
 		check.overlap = FALSE, default.units = "npc",
-		gp = gpar( fontsize= 12, col= m$p$clr$gry), draw = TRUE, vp = NULL)
+		gp = gpar( fontsize= 14, col= m$p$clr$gry), draw = TRUE, vp = NULL)
   }
 
   # Function to save as SVG
@@ -406,8 +406,6 @@ critical impact on the FX market.
 :END:
 file:lctn_lctn_lctn.svg
 
-
-
 Location, location, location is a mantra used in the property market
 to stress the importance of location to a property's value. Location
 is also important in FX markets, but here I use the expression to
@@ -607,11 +605,11 @@ time.
       geom_text( data= function( x) x[ , .( adj_adv, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
 				      mapping= aes( x= mnth+ days( 10), y= adj_adv, label= vn_nm),
-		colour= m$p$clr$drk_gry, fontface= "bold", hjust= 0, size= 5) +
+		colour= m$p$clr$drk_gry, fontface= "bold", hjust= 0, size= 6) +
       geom_text( data= function( x) x[ , .( adj_adv, mnth, mx= max( mnth)) , vn_nm][
 				       mnth== mx],
 				      mapping= aes( x= mnth+ days( 10), y= adj_adv, label= vn_nm),
-		colour= m$p$clr$rd, fontface= "bold", hjust= 0, size= 5) +
+		colour= m$p$clr$rd, fontface= "bold", hjust= 0, size= 6) +
       theme_void() +
       scale_x_datetime( limits= as.POSIXct( unlist( m$o$vns[ , .( min( mnth)- months( 3),
 								 max( mnth) + months( 20))]),
@@ -622,13 +620,13 @@ time.
 	    panel.background= element_rect( fill= "grey95", colour= NA), legend.position= "none") +
       annotate( label= "1. High volume volatility over time,\npeak across all venues in Feb 2020",
 	       x= as.POSIXct( "2020-01-15"), y= 123, hjust= 1, vjust= 1, alpha= .8,
-	       geom= "label", colour= "white", fill= m$p$clr$rd, size= 5, fontface= "bold") +
+	       geom= "label", colour= "white", fill= m$p$clr$rd, size= 6, fontface= "bold") +
       annotate( label= "2. Reduce variability by\nnormalizing with CLS volumes",
 	       x= as.POSIXct( "2018-01-15"), y= 73, hjust= 0.5, vjust= 1, alpha= .6,
-	       geom= "label", colour= "white", fill= "black", size= 5, fontface= "bold") +
+	       geom= "label", colour= "white", fill= "black", size= 6, fontface= "bold") +
       annotate( label= "3. Reduced variability better\nreveals venue growth",
 	       x= as.POSIXct( "2020-01-15"), y= 73, hjust= 1, vjust= 1, alpha= .8,
-	       geom= "label", colour= "white", fill= m$p$clr$rd, size= 5, fontface= "bold") +
+	       geom= "label", colour= "white", fill= m$p$clr$rd, size= 6, fontface= "bold") +
       annotate( x= as.POSIXct( "2020-02-01"), xend= as.POSIXct( "2020-02-01"),
 	       y= 0, yend= 125, geom= "segment", colour= m$p$clr$rd, size= 1, alpha= 0.5)
 
@@ -784,6 +782,8 @@ time.
 
   # Make comments visible/invisible
   grid.animate( m$p$lbl2[[1]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+  grid.animate( m$p$sgmnt2[[2]]$name, visibility= "hidden",
 	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
   grid.animate( m$p$lbl2[[2]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
 	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
