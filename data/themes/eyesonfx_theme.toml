@@ -5,7 +5,7 @@ name = "eyesonfx_theme"
 light = true
 
 # Primary
-primary = "#EA5D79" #"#439C63"
+primary = "#439C63"
 
 # Menu
 menu_primary = "#fff"
