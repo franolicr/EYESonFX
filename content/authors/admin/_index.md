@@ -10,7 +10,7 @@ authors:
 superuser: true
 
 # Role/position
-role: FX Quantitative Analytics Manager
+role: Founder of EYES on FX
 
 # Organizations/Affiliations
 organizations:

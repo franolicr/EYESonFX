@@ -38,7 +38,7 @@ weight = 10  # Order that this section will appear.
 #   Remove a link/note by deleting a cta/note block.
   
 [cta]
-  url = "https://sourcethemes.com/academic/"
+  url = "/#contact"
   label = "Sign-up for deeper insights"
   icon_pack = "fas"
   icon = "envelope"
@@ -56,4 +56,4 @@ weight = 10  # Order that this section will appear.
 
 <img src="/img/eyesonfx.png">
 
-**Currency markets in quantitative focus**
+**Currency markets in focus**
