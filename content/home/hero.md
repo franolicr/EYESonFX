@@ -60,5 +60,5 @@ weight = 10  # Order that this section will appear.
 
 <img src="/img/eyesonfx.png">
 
-**FX with a data science focus**
+**Currency markets with a data science focus**
 
