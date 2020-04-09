@@ -5,24 +5,13 @@
 
 [[main]]
   name = "Home"
-  url = "#about"
+  url = "#hero"
   weight = 10
 
 [[main]]
   name = "Posts"
   url = "#posts"
   weight = 20
-
-[[main]]
-  name = "Blog"
-  url = "#projects"
-  weight = 30
-
-[[main]]
-  name = "Publications"
-  url = "#featured"
-  weight = 40
-
 
 [[main]]
   name = "Contact"
@@ -38,46 +27,72 @@
 
 
 [[main]]
-  identifier= "FX_Questions"
-  name = "FX Questions"
+  identifier= "FX_reference"
+  name = "FX Reference"
   weight = 80
 
 [[main]]
-  name = "Who?"
-  parent= "FX_Questions"
-  weight = 10
-
-[[main]]
-  name = "Why?"
-  parent= "FX_Questions"
-  weight = 10
+  name = "Overview"
+  parent= "FX_reference"
+  url = "/doc/fx_reference/"
+  weight = 5
 
 [[main]]
   name = "What?"
-  parent= "FX_Questions"
+  parent= "FX_reference"
+  url= "/doc/fx_reference/what/"
+  weight = 10
+
+[[main]]
+  name = "Who?"
+  parent= "FX_reference"
+  url= "/doc/fx_reference/who/"
   weight = 20
 
 [[main]]
-  name = "Where?"
-  parent= "FX_Questions"
+  name = "Why?"
+  parent= "FX_reference"
+  url= "/doc/fx_reference/why/"
   weight = 30
+
+[[main]]
+  name = "Where?"
+  parent= "FX_reference"
+  url= "/doc/fx_reference/where/"
+  weight = 40
 
 [[main]]
   name = "When?"
-  parent= "FX_Questions"
-  weight = 30
+  parent= "FX_reference"
+  url= "/doc/fx_reference/when/"
+  weight = 50
 
 [[main]]
   name = "How?"
-  parent= "FX_Questions"
+  parent= "FX_reference"
+  url= "/doc/fx_reference/how/"
+  weight = 60
+
+[[main]]
+  identifier= "External_Reference"
+  name = "External references"
+  weight = 100
+
+[[main]]
+  parent= "External_Reference"
+  name = "Data"
+  weight = 10
+
+[[main]]
+  parent= "External_Reference"
+  name = "Books & Papers"
+  weight = 20
+
+[[main]]
+  parent= "External_Reference"
+  name = "Glossary"
   weight = 30
 
-[[main]]
-  identifier= "FX_Reference"
-  name = "References"
-  weight = 80
 
-[[main]]
-  parent= "FX_Reference"
-  name = "Books"
-  weight = 10
+
+

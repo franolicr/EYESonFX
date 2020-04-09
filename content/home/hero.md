@@ -26,7 +26,7 @@ weight = 10  # Order that this section will appear.
   # Background image.
   # image = "eyesonfx.png"  # Name of image in `static/img/`.
   # image_darken = 0.6  # Darken the image? Range 0-1 where 0 is transparent and 1 is opaque.
-  # image_size = "actual"  #  Options are `cover` (default), `contain`, or `actual` size.
+   #image_size = "contain"  #  Options are `cover` (default), `contain`, or `actual` size.
   # image_position = "center"  # Options include `left`, `center` (default), or `right`.
   # image_parallax = false  # Use a fun parallax-like fixed background effect? true/false
   
@@ -52,8 +52,13 @@ weight = 10  # Order that this section will appear.
 # Note. An optional note to show underneath the links.
 #[cta_note]
 #  label = '<a class="js-github-release" href="https://sourcethemes.com/academic/updates" data-repo="gcushen/hugo-acad#emic">Latest release<!-- V --></a>'
+
+#css_style = "float: left; clear: none;"
+#css_class= "RF_parent"
 +++
+
 
 <img src="/img/eyesonfx.png">
 
-**Currency markets in focus**
+**FX with a data science focus**
+

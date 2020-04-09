@@ -8,6 +8,9 @@
 #+BEGIN_SRC R :eval yes
   source( "/Dnk/R_setup.R")
 #+END_SRC
+
+#+RESULTS:
+
 ** For posts
 #+BEGIN_SRC R :eval yes
   library( ggplot2)
@@ -56,7 +59,7 @@
 	       heights= c( 25, 750, 15))
 
       grid.raster( image= m$p$plt$eyesonfx_lg, x= 1- 0.0015, y= 1- 0.0015, vjust= 1, hjust= 1,
-		  height= 0.035, name= )
+		  height= 0.035)
       grid.text( name= "title", label= ttl, x = unit(0.01, "npc"), y = unit(1- 0.01, "npc"),
 		 hjust = 0, vjust = 1, rot = 0,
 		check.overlap = FALSE, default.units = "npc",
@@ -109,7 +112,7 @@
 #+RESULTS:
 
 * Posts
-** 'Welcome my some, welcome to the machine'                            :How:
+** TODO 'Welcome my some, welcome to the machine'                       :How:
    SCHEDULED: <2020-03-07 Sat>
 :PROPERTIES:
 :EXPORT_FILE_NAME: welcome_to_the_machine
@@ -117,7 +120,7 @@
 Following my previous two blogs, in my last Pink Floyd inspired post
 (for now), I explore the workings of the machine that is the FX
 market, and explore different trading mechanisms.
-** 'Grab that cash with both hands and make a stash'                    :Why:
+** TODO 'Grab that cash with both hands and make a stash'               :Why:
    SCHEDULED: <2020-03-06 Fri>
 :PROPERTIES:
 :EXPORT_FILE_NAME: grab_that_cash_with_both_hands
@@ -816,7 +819,7 @@ time.
 :EXPORT_FILE_NAME: whos_who
 :END:
 
-file:Whos_who.gif
+file:whos_who2.svg
 
 Who are the most important players in the FX market.
 
@@ -833,90 +836,171 @@ Concentration within the FX market
   m$x$ermny <- m$i$ermny[ rnk <= 10]
   m$x$ermny[ lp== "Bank of America Merrill Lynch", lp:= "Bank of America"]
 
-  # Order by when LP's dropped out ( earliest first) then by rank in latest year
-  m$p$lps <- m$x$ermny[ , .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr][ order( lst_yr, shr)]
+  # Order by when LP's appeated, earliest first, then by rank in that year
+  m$p$lps <- m$x$ermny[ , .( frst_yr= min( yr), yr, rnk), lp][ yr== frst_yr]
+
   m$x$ermny[ , lp:= factor( lp, levels= m$p$lps$lp)]
 
-  m$x$ermny[ , hrfndl:= sum( shr^ 2), yr]
+  m$p$yrs <- m$x$ermny[ , unique( yr)]
 
-  m$o$ermny <- m$x$ermny
-  # Commentary
-  m$o$cmnts <- list(
-      3, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD")
 
-  m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
-				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
-  m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
+  m$o$ermny <- m$x$ermny[ order( yr, rnk)]
 
-  # Let's plot it!
-  saveGIF({ ani.options(interval = 2, nmax = 75)
+  # Ensure have row for every lp for every year
+  m$o$ermny <- merge( x= m$o$ermny, y= CJ( yr= unique( m$o$ermny$yr), lp= unique( m$o$ermny$lp)),
+	by= c( "yr", "lp"), all.y= TRUE, allow.cartesian= TRUE)
 
-  for( j in m$o$ermny[ , .N, lp][ order( lp), lp]){
-      print(
-	  ggplot( data= m$o$ermny) +
-	  # lines
-	  geom_line( mapping= aes( x= yr, y= shr, group= lp),
-		    colour= m$p$clr$drk_gry) +
-	  # labels
-	  geom_text( data= function( x)
-	      x[ lp!= j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
-	      mapping= aes( x= yr + 3/12, y= shr, label= paste( lp), hjust= 0),
-	      colour= m$p$clr$drk_gry, size= 5) +
-	  # last point
-	  geom_point( data= function( x)
-	      x[ lp!= j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
-	      mapping= aes( x= yr, y= shr), 
-	      colour= m$p$clr$drk_gry, size= 3)+
-	  # highlighted line
-	  geom_line( data= function( x) x[ lp== j],
-		    mapping= aes( x= yr, y= shr),
-		    colour= m$p$clr$rd, size= 2) +
-	  # highlighted last point line
-	  geom_point(
-	      data= function( x) x[ lp== j, .( lst_yr= max( yr), yr, shr), .( lp)][ yr== lst_yr],
-	      mapping= aes( x= yr, y= shr), 
-	      colour= m$p$clr$rd, size= 4)+
-	  # white background highlighted label
-	  geom_text( data= function( x)
-	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr][
-		  rep( 1, 4), .( yr, shr, rnk, x= c( 1/24, 0, -1/24, 0),
-				y= c( 0, 0.0002, 0, -0.0002),
-				lp)],
-	      mapping= aes( x= yr + 3/12 + x, y= shr+ y,
-			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100),1))),
-	      colour= "white", fontface= "bold", hjust= 0, size= 5) +
-	  # highlighted label
-	  geom_text( data= function( x)
-	      x[ lp== j, .( lst_yr= max( yr), yr, rnk, shr), .( lp)][ yr== lst_yr],
-	      mapping= aes( x= yr + 3/12, y= shr,
-			   label= paste( rnk, lp, sprintf( fmt= "%g%%", round( shr* 100, 1)))),
-		    fontface= "bold", hjust= 0, size= 5, colour= m$p$clr$rd) +
-	  # logo
-	  annotation_custom( m$p$eyesonfx_lg, xmin= 2022, xmax= 2025, ymin=0.195, ymax= 0.2) +
-	  # source
-	  annotate( geom= "text", x= 2020, y= -10, hjust= 1, vjust= 0, size= 5,
-		   label= "Source: Euromoney FX surveys", colour= m$p$clr$drk_gry) +
-	  annotate( geom= "segment", x= 2009.5, xend= 2019, y= 0, yend= 0, colour= m$p$clr$lght_lght_gry) +
-	  annotate( geom= "text", x= 2010:2019, y= -0.002, label= 2010:2019,
-		   size= 5) +
-	  annotate( geom= "segment", x= 2009.5, xend= 2009.5, y= 0, yend= 0.19, colour= m$p$clr$lght_lght_gry) +
-	  annotate( geom= "text", x= 2009, y= seq( 0.0, 0.175, 0.025), label= seq( 0.0, 0.175, 0.025),
-		   size= 5, hjust= 1) +
-	  # commentary
-	  geom_label( data= m$o$cmnts[ frm== j],
-		 mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
-		 alpha= 1.0, colour= "white", size= 6, fontface= "bold") +
-	  scale_x_continuous( limits= c( 2008, 2025), breaks= 2010:2019, expand= expansion(mult = 0, add = 0)) +
-	  scale_y_continuous( limits= c( -0.01, 0.2), expand= expansion(mult = 0, add = 0)) +
-  #      theme_grey()) 
-	theme_void()) 
-  #    geom_label( data= function( x) x[ n==0],
-  #	      mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
-  #	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
-  #	      hjust= 0, vjust= 0.5 ) +
-  }}
-  , movie.name = "Whos_who.gif", ani.width = 500, ani.height = 800) 
-  #, movie.name = "Whats_what.mp4", ani.width = 750, ani.height = 1200) 
+  m$o$ermny[ , alph:= fifelse( is.na( rnk), 0, 1)]
+  m$o$ermny[ , shp:= fifelse( is.na( rnk), 1, 21)]
+  m$o$ermny[ is.na( rnk), rnk:= 5]
+  m$o$ermny[ is.na( shr), shr:= 0]
+
+
+  m$o$ermny[ , lbl:= gsub( " ", "\n", lp)]
+  m$o$ermny[ lp== "Bank of America", lbl:= "Bank of\nAmerica"]
+
+  m$o$ermny[ , rnk_x := ( yr- 2009)/ 10 * 0.5]
+  m$o$ermny[ , shr_x := 0.7 + shr/ round( max( shr), 1)]
+  m$o$ermny[ , y := -as.numeric( lp)]
+
+  quartz( width= 1.25 * 5, height= 1.25 * 8)
+
+  m$o$plt <- ggplot( data= m$o$ermny) +
+      annotate( geom= "segment",
+	       x= c( ( 2010:2019- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
+	       xend= c( ( 2010:2019- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
+	       colour= "white", y= c( rep( 0, 15)), yend= -17) +
+      annotate( geom= "text", x= c( 0.05, 0.7), y= c( .5, .5), hjust= 0,
+	       label= c( "Rank", "Market Share"), size= 5) + 
+  #    annotate( geom= "text", x= c( seq( 2010, 2018, 2)- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
+  #             y= rep( 0, 10), label= c( paste0( "'", seq( 10, 18, 2)), paste0( seq( 0, 20, 5), "%")),
+  #             hjust= 0.25) +
+      annotate( geom= "text", x= c( ( c( 2010, 2019)- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
+	       y= rep( 0, 7), label= c( "2010", "2019", paste0( seq( 0, 20, 5), "%")),
+	       hjust= 0.25) +
+      geom_point( mapping= aes( x= rnk_x, y= y, fill= rnk, shape= I( shp), alpha= I( alph)+ 0.5),
+		 size= 7) +
+      geom_text( mapping= aes( x= rnk_x, y= y, label= rnk, alpha= I( alph)), size= 4.5) +
+      geom_segment( mapping= aes( x= 0.7, xend= shr_x, y= y, yend= y), size= 2) +
+      geom_point( mapping= aes( x= shr_x, y= y, fill= rnk, alpha= I( alph)), shape= 21, size= 7) +
+      geom_text( mapping= aes( x= shr_x, y= y, label= rnk, alpha= I( alph)), size= 4) +
+      scale_fill_gradient2( low= m$p$clr$grn, mid= "white", high= m$p$clr$rd,
+			   midpoint= 5) +
+      scale_x_continuous( limits= c( -.6, 1.72)) +
+      scale_y_continuous( limits= c( -17, 1)) +
+      geom_text( data= function( x) x[ , .N, .( y, lp)],
+		mapping= aes( y= y, label= lp), size= 5, x= -.02, hjust= 1) + 
+      geom_text( data= function( x) x[ , .N, yr],
+		mapping= aes( label= paste0( "Market Share - ", yr)),
+			     x= 0.7, y= .5, hjust= 0, size= 5) +
+      theme_void() +
+      theme( plot.background= element_rect( fill= "grey95", colour= NA),
+	    panel.background= element_rect( fill= "grey95", colour= NA),
+	    legend.position = "none")
+
+  m$f$plt( plt= m$o$plt, ttl= "Top Liquidity Providers 2010-19",
+	    sbttl= "Euromoney FX Survey rankings and market shares each year",
+	    src= "Source: Euromoney")
+
+  grid.force()
+
+  m$p$sgmnt <- lapply( grep( "GRID.segment", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[2:3]
+  m$p$pnts  <- lapply( grep( "geom_point", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$rnks  <- lapply( grep( "GRID.text", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[3:4]
+  m$p$yr_txts <- lapply( grep( "GRID.text", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[6]
+  m$p$icn <- lapply( grep( "GRID.rastergrob", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[[1]]
+
+  # Dummy animation to coordinate timing of other animations
+  grid.animate( m$p$icn$name, visibility= c( "visible", "visible"),
+		 begin= "0;anmtn_dmy_id.end", duration= 35)
+
+  # hide everything initially
+  grid.animate( m$p$pnts[[1]]$name,
+	       visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 2, interpolate= "discrete")
+  grid.animate( m$p$rnks[[1]]$name,
+	       visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 2, interpolate= "discrete")
+
+  # make only current year visisble
+  m$p$msk <- rep( "hidden", length( m$p$yrs) * dim( m$p$lps)[1])
+
+  i= 0
+  for( i in 0:( length( m$p$yrs)- 1)){
+  #for( i in 0:0){
+
+  # Hide lines    
+  grid.animate( m$p$sgmnt[[1]]$name, x1= animUnit(
+					 x= unit( c( m$p$sgmnt[[1]]$x0,
+						    ifelse( 1:length(m$p$msk) %in%
+							( 1:length( m$p$lps$lp) + length( m$p$lps$lp) * i),
+							m$p$sgmnt[[1]]$x1, m$p$sgmnt[[1]]$x0)), units= "native"),
+					 id= rep( 1:160, 2)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i), duration= 2)
+  # Hide all circles on market shares
+  grid.animate( m$p$pnts[[2]]$name,
+	       visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i), duration= 2, interpolate= "discrete")
+  # Hide all cricle labels on market shares
+  grid.animate( m$p$rnks[[2]]$name,
+	       visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i), duration= 2, interpolate= "discrete")
+
+  # Hide all year labels but current year
+  grid.animate( m$p$yr_txts[[1]]$name,
+	       visibility= animValue(
+					 x=  ifelse( m$p$yrs== m$p$yrs[ i+1],
+						    "visible", "hidden"),
+		   id= 1:length( m$p$yrs)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i), duration= 3, interpolate= "discrete")
+
+  # Hide all circles on market shares, except current year    
+  grid.animate( m$p$pnts[[2]]$name,
+	       visibility= animValue(
+					 x=  ifelse( 1:length(m$p$msk) %in%
+							( 1:length( m$p$lps$lp) + length( m$p$lps$lp) * i),
+							"visible", "hidden"),
+					 id= rep( 1:160, 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i+ 2), duration= 1, interpolate= "discrete")
+  grid.animate( m$p$rnks[[2]]$name,
+	       visibility= animValue(
+					 x=  ifelse( 1:length(m$p$msk) %in%
+							( 1:length( m$p$lps$lp) + length( m$p$lps$lp) * i),
+							"visible", "hidden"),
+					 id= rep( 1:160, 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i+ 2), duration= 1, interpolate= "discrete")
+
+  grid.animate( m$p$pnts[[1]]$name,
+	       visibility= animValue(
+					 x=  ifelse( 1:length(m$p$msk) <= ( 1+ i) * dim( m$p$lps)[1],
+							"visible", "hidden"),
+					 id= rep( 1:160, 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i+ 2), duration= 3, interpolate= "discrete")
+  grid.animate( m$p$rnks[[1]]$name,
+	       visibility= animValue(
+					 x=  ifelse( 1:length(m$p$msk) <= ( 1+ i) * dim( m$p$lps)[1],
+							"visible", "hidden"),
+					 id= rep( 1:160, 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i+ 2), duration= 3, interpolate= "discrete")
+  }
+  #i= 0
+  #for( i in 0:( length( m$p$yrs)- 1)){
+  #    grid.animate( m$p$sgmnt[[1]]$name, visible= animValue(
+  #                                           x= ifelse( 1:length(m$p$msk) ==
+  #                                                      ( 1:length( m$p$lps$lp) + length( m$p$lps$lp) * i),
+  #                                                  "visible", "hidden"), id= 1:160),
+  #             begin= paste0( "anmtn_dmy_id.begin+", 3 * 0), duration= 30)
+  #}
+
+  grid.animate( m$p$pnts[[1]]$name,
+	       visibility= "visible",
+	       begin= paste0( "anmtn_dmy_id.begin+", 32), duration= 3, interpolate= "discrete")
+  grid.animate( m$p$rnks[[1]]$name,
+	       visibility= "visible",
+	       begin= paste0( "anmtn_dmy_id.begin+", 32), duration= 3, interpolate= "discrete")
+
+  m$f$sv_svg( "~/eyesonfx/content/whos_who2.svg")
+
 #+END_SRC
 
 #+BEGIN_SRC R
@@ -1261,10 +1345,11 @@ The market has grown every period, sa
 ** What's in a name?
    SCHEDULED: <2020-02-29 Sat>
 :PROPERTIES:
-:EXPORT_FILE_NAME: ox-hugo-1
+:EXPORT_FILE_NAME: whats_in_a_name
 :END:
 
-[[file:/Users/rfranolic/eyesonfx/assets/images/The_Tiger_That_Isn't.jpg]]
+[[file:whats_in_a_name.gif]]
+
 #+BEGIN_SRC R
   library(VennDiagram)
 
@@ -1571,42 +1656,100 @@ The market has grown every period, sa
   }
 
 
-  dev.off()
-  m$p$lbls <- c( "Nerd", "R Code\nTeam", "Hacker", "Stats\nProfessor", "Good\nConsultant",
-		"EYES on FX", "Quant\nTrader", "Front\nOffice Developer", "Hot air", "Computing\nProfessor",
-		"Head\nof IT", "Currency\nPM", "Traditional\nQuant", "FX\nTrader", "FX Sales")
-  m$p$lbls
-  m$p$ctgrs <- matrix( c( c( 0, 1.0, 0, 0),
-			 rep( c( 1.0, 1.0, 0, 0), 2),
-			 rep( c( 1.0, 1.0, 1.0, 0), 4),
-			 rep( c( 1.0, 1.0, 1.0, 1.0), 8)),
-		      nrow= 15, ncol= 4, byrow= TRUE)
 
-  m$p$sqnc <- c( 14, 9, 15, 1, 13, 4, 12, 3, 8, 11, 10, 5, 2, 7, 6) 
+  m$p$lbls <- c( "Nerd", "R Core\nTeam", "Hacker", "Stats\nProfessor", "Good\nConsultant",
+		"EYES on FX", "Quant\nTrader", "eFX IT\nDeveloper", "Hot Air", "Computing\nProfessor",
+		"FX IT\nHead", "Currency\nPM", "Options\nQuant", "FX\nTrader", "FX Sales")
+  m$p$lbls
+  m$p$ctgrs <- matrix( c( rep( c( 0, 1.0, 0, 0), 2),
+			 rep( c( 1.0, 1.0, 0, 0), 3),
+			 rep( c( 1.0, 1.0, 1.0, 0), 5),
+			 rep( c( 1.0, 1.0, 1.0, 1.0), 9)),
+		      ncol= 4, byrow= TRUE)
+
+  m$p$sqnc <- c( 14, 14, 9, 9, 15, 1, 1, 13, 4, 12, 3, 3, 8, 11, 10, 5, 2, 7, 6) 
 
   # Use standard font
   showtext_auto()
+  saveGIF({ #ani.options(interval = 2, nmax = 75)
 
-  for( i in 1:( length( m$p$sqnc)+ 1))
-      {
-      grid.newpage(recording = TRUE)
-      tmp <- m$p$lbls
-      tmp[ m$p$sqnc[i:15]] <- ""
-      venn.plot <- draw.quad.venn(
-	  alpha= m$p$ctgrs[ i,]* 0.5, 
-	  labels= tmp,
-	  area1 = 72, area2 = 86, area3 = 50, area4 = 52,
-      n12 = 44, n13 = 27, n14 = 32, n23 = 38, n24 = 32, n34 = 20,
-      n123 = 18, n124 = 17, n134 = 11, n234 = 13, n1234 = 6,
-      category = c("Comms", "FX", "Maths / Stats", "Data / IT"),
-      fill = c("black", m$p$clr$grn, m$p$clr$rd, "grey"), lwd= 0,
-      lty = c("solid", "solid", "solid", "solid"),
-      fontfamily= "Merriweather",
-      cex = 1,
-      cat.cex = m$p$ctgrs[ i, ]* 1.5,
-      cat.col = c("black", m$p$clr$grn, m$p$clr$rd, "dark grey"),
-      cat.fontfamily= "Quantico")
+  #for( i in length( m$p$sqnc):( length( m$p$sqnc)+ 0))
+      for( i in 1:( length( m$p$sqnc)+ 0)) {
+	  grid.newpage(recording = TRUE)
+	  grid.rect( gp= gpar( fill= m$p$clr$bckgrnd_gry, col= NA))
+	  grid.raster( image= m$p$plt$eyesonfx_lg,
+		      x= 1- 0.0015, y= 1- 0.0015, vjust= 1, hjust= 1,
+		    height= 0.035)
+	  grid.text( label= "EYES on FX combines four skill sets",
+		    name= "title", x = unit(0.01, "npc"), y = unit(1- 0.01, "npc"),
+		   hjust = 0, vjust = 1, rot = 0,
+		  check.overlap = FALSE, default.units = "npc",
+		  gp = gpar( fontsize= 18, fontface= "bold"), draw = TRUE, vp = NULL)
+	  grid.text( label= "Data Science skill sets venn diagram in an FX context",
+		    x = unit(0.01, "npc"), y = unit(1- 0.04, "npc"),
+		   hjust = 0, vjust = 1, rot = 0,
+		  check.overlap = FALSE, default.units = "npc",
+		  gp = gpar( fontsize= 14), draw = TRUE, vp = NULL)
+	  grid.text( name= "footer", label= "Based on Stephan Kolassa's diagram following Drew Conway", x = unit(1- 0.005, "npc"), y = unit( 0.005, "npc"),
+		   hjust = 1, vjust = 0, rot = 0,
+		  check.overlap = FALSE, default.units = "npc",
+		  gp = gpar( fontsize= 14, col= m$p$clr$gry), draw = TRUE, vp = NULL)
+	  if( i== 1) grid.refresh()
+	  tmp <- m$p$lbls
+	  if( i <= length( m$p$sqnc)){
+	      tmp[ m$p$sqnc[(1+i):length( m$p$sqnc)]] <- ""}
+	  venn.plot <- draw.quad.venn(
+	      alpha= m$p$ctgrs[ i,]* 0.5, 
+	      labels= tmp, fontface= "bold",
+	      label.col= c( "black", "black", "black", "white", "black",
+			   "black","black", "black","white", "Black",
+			   "white", "white", "black", "black", "white"),
+	      area1 = 72, area2 = 86, area3 = 50, area4 = 52,
+	      n12 = 44, n13 = 27, n14 = 32, n23 = 38, n24 = 32, n34 = 20,
+	      n123 = 18, n124 = 17, n134 = 11, n234 = 13, n1234 = 6,
+	      category = c("(2)\n Comms", "(1)\nFX", "(3)\nMaths / Stats", "(4)\nData / IT"),
+	      fill = c("black", m$p$clr$grn, m$p$clr$rd, "grey"), lwd= 0,
+	      lty = c("solid", "solid", "solid", "solid"),
+	      fontfamily= "Merriweather",
+	      cex = 1.3,
+	      cat.cex = m$p$ctgrs[ i, ]* 2,
+	      cat.col = c("black", m$p$clr$grn, m$p$clr$rd, m$p$clr$drk_gry),
+	      cat.fontfamily= "Quantico")  
       }
+      grid.roundrect( x= 0.5, y= 0.43, r= unit( 0.2, "snpc"), width= 0.17, height= 0.08,
+		     gp= gpar( fill= "white", col= 0))
+      grid.raster( image= readPNG( "/Users/rfranolic/eyesonfx/assets/images/square_logo.png"),
+		  x= 0.5, y= 0.43, height= 0.10)
+      grid.refresh()
+      grid.refresh()
+      grid.refresh()
+      grid.refresh()
+  }
+  , movie.name = "Whats_in_a_name.gif", ani.width = 500, ani.height = 800) 
+
+
+  #    grid.newpage(recording = TRUE)
+  #    venn.plot <- draw.quad.venn(
+  #	alpha= 0.3,
+  #	labels= tmp,
+  #	area1 = 72, area2 = 86, area3 = 50, area4 = 52,
+  #        n12 = 44, n13 = 27, n14 = 32, n23 = 38, n24 = 32, n34 = 20,
+  #        n123 = 18, n124 = 17, n134 = 11, n234 = 13, n1234 = 6,
+  #    category = c("Comms", "FX", "Maths / Stats", "Data / IT"),
+  #    fill = c("black", m$p$clr$grn, m$p$clr$rd, "grey"), lwd= 0,
+  #    lty = c("solid", "solid", "solid", "solid"),
+  #    fontfamily= "Merriweather",
+  #    cex = 1,
+  #    cat.cex =  1.5,
+  #    cat.col = c("black", m$p$clr$grn, m$p$clr$rd, "dark grey"),
+  #    cat.fontfamily= "Quantico")
+  #
+  #  m$f$plt( plt= grid.draw( venn.plot), ttl= "Top Liquidity Providers 2010-19",
+  #	    sbttl= "Euromoney FX Survey rankings and market shares each year",
+  #	    src= "Source: Euromoney")
+
+
+  # m$f$sv_svg( "~/eyesonfx/content/whats_in_a_name.svg")
 #+END_SRC
 
 This is my very first blog post! In it I will explain how I came up with
@@ -1676,7 +1819,7 @@ The online reference is based on my own experience of the markat and also questi
 - books
 - white/academic papers
 *** Principles
-** The colour of money                                              :DataViz:
+** TODO The colour of money                                         :DataViz:
 :PROPERTIES:
 :EXPORT_FILE_NAME: any_colour_you_like
 :END:
@@ -1699,38 +1842,208 @@ The online reference is based on my own experience of the markat and also questi
   col2rgb( "#EA5D79")
 #+END_SRC
 
-* FX Market
-** What is FX?
+* FX Market reference
 :PROPERTIES:
-:EXPORT_FILE_NAME: what_is_FX
+:EXPORT_HUGO_SECTION: doc/FX_reference
 :END:
+** Overview
+:PROPERTIES:
+:EXPORT_FILE_NAME: _index
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+#+begin_src yaml :front_matter_extra t
+linktitle: Overview
+toc: true
+type: docs
+menu:
+  FX_reference:
+    name: Overview 
+    weight: 1
+#+end_src
+An FX trade can be simplified into different elements that form the
+answers to the six simple quesions shown in the table below.
+
+file:/img/gsm_fx.svg
+
+| Question | Schematic               | Areas covered                                                |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[What?]]    | file:/img/gsm_what.svg  | What is traded: Currencies and instruments                   |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[Who?]]     | file:/img/gsm_who.svg   | Who trades: buy-side and sell-side counterparts              |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[When?]]    | file:/img/gsm_when.svg  | When is FX traded: Dates, Times, Timing                      |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[Where?]]   | file:/img/gsm_where.svg | Where it's traded: Trading centres and Venues                |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[Why?]]     | file:/img/gsm_why.svg   | Why it's traded: the reasons counterparts come to the market |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[How?]]     | file:/img/gsm_how.svg   | How eXchange happens: the mechanics of trading               |
+|----------+-------------------------+--------------------------------------------------------------|
+
+
+Click on the part of the schematic, the question in the table, or in
+the menu for answers to these questions.
+
+
+** What?
+:PROPERTIES:
+:EXPORT_FILE_NAME: what
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+
+#+begin_src yaml :front_matter_extra t
+linktitle: What?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 10
+#+end_src
+
+What is FX
 *** Currencies
 *** Instruments
-** Who trades FX?
+
+** Who?
 :PROPERTIES:
-:EXPORT_FILE_NAMeE: who_trades_fx
+:EXPORT_FILE_NAME: who
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
 :END:
+
+#+begin_src yaml :front_matter_extra t
+linktitle: Who?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 20
+#+end_src
+
+| Banks          | 40% |
+|----------------+-----|
+| Asset managers | 20% |
+|----------------+-----|
+| Corporates     |  5% |
+|----------------+-----|
+| Central Banks  | 10% |
+
+
 *** Banks
 *** Asset Managers
 *** Coporations
 *** Central Banks
-** Where is FX traded?
+** Where?
 :PROPERTIES:
-:EXPORT_FILE_NAME: where_is_FX_traded
+:EXPORT_FILE_NAME: where
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
 :END:
-** When is FX traded?
+
+#+begin_src yaml :front_matter_extra t
+linktitle: Where?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 30
+#+end_src
+
+** When?
 :PROPERTIES:
-:EXPORT_FILE_NAME: when_is_FX_traded
+:EXPORT_FILE_NAME: when
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
 :END:
-** Why is FX traded?
+
+#+begin_src yaml :front_matter_extra t
+linktitle: When?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions 
+    weight: 40
+#+end_src
+
+** Why?
 :PROPERTIES:
-:EXPORT_FILE_NAME: why_is_FX_traded
+:EXPORT_FILE_NAME: why
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
 :END:
-** How is FX traded?
+
+#+begin_src yaml :front_matter_extra t
+linktitle: Why?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 50
+#+end_src
+*** To make a profit as a Market maker
+*** To speculate
+*** To fund foreign payments
+*** Hedge currency exposure
+** How?
 :PROPERTIES:
-:EXPORT_FILE_NAME: how_is_FX_traded
+:EXPORT_FILE_NAME: how
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
 :END:
-* About
+#+begin_src yaml :front_matter_extra t
+linktitle: How?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 60
+#+end_src
+*** Decision
+*** Execution
+** Glossary
+:PROPERTIES:
+:EXPORT_FILE_NAME: Glossary
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+#+begin_src yaml :front_matter_extra t
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: B. Terminology
+    name: Glossary
+    weight: 60
+#+end_src
+
+A glossary of terms used in FX
+
+| Term      | Synonyms                           | Meaning                                                                                                                                                                                 | Exernal Reference |
+|-----------+------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------|
+| Buy side  | Liquidity consumers                |                                                                                                                                                                                         |                   |
+| Sell side | Liquidity providers, market makers | Banks (typically) that make a market in a particular currency  pair and instrument i.e. they will quote a price at which they will buy (the bid) or sell (the offer) a particular pair. |                   |
+|           |                                    |                                                                                                                                                                                         |                   |
+** Data
+:PROPERTIES:
+:EXPORT_FILE_NAME: Data
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+#+begin_src yaml :front_matter_extra t
+toc: true
+type: docs
+menu:
+  FX_reference:
+    name: Data
+    parent: C. Data Sources
+    weight: 95
+#+end_src
+
+A  of terms used in FX
+
+| Data | Type | Source | Description |
+|------+------+--------+-------------|
+|      |      |        |             |
+
 * Data
 * References
 ** Books

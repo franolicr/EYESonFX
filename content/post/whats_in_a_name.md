@@ -5,7 +5,8 @@ publishDate = 2020-02-29T00:00:00+00:00
 draft = false
 +++
 
-![](/ox-hugo/The_Tiger_That_Isn't.jpg)
+{{< figure src="/ox-hugo/whats_in_a_name.gif" >}}
+
 This is my very first blog post! In it I will explain how I came up with
 the name, Eyes on FX, and my intentions for this website.
 
