@@ -2,7 +2,6 @@
 #+HUGO_SECTION: post
 #+HUGO_BASE_DIR: ~/eyesonfx
 #+EXPORT_HUGO_BUNDLE: page-bundle-images-in-same-dir
-#+EXPORT_HUGO_AUTO_SET_LASTMOD: f
 #+PROPERTY: header-args:R  :session *R* :results replace :tangle yes :eval no :exports none
 * Setup
 ** Standard
@@ -133,8 +132,9 @@ necessarily the primary driver.
 #+hugo: more
 
 ** 'So you run and you run to catch up with the sun'                   :When:
-   SCHEDULED: <2020-03-05 Thu>
+SCHEDULED: <2020-03-05 Thu>   
 :PROPERTIES:
+:EXPORT_DATE: 2020-03-06
 :EXPORT_FILE_NAME: so_you_and_you_run
 :END:
 [[file:catch_up_with_the_sun.gif]]
@@ -403,6 +403,7 @@ critical impact on the FX market.
 - The working week
 - Time of the day
 - Intra-hour
+
 ** Location, Location, Location                                       :Where:
    SCHEDULED: <2020-03-03 Tue>
 :PROPERTIES:

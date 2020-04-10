@@ -1,6 +1,7 @@
 +++
 title = "'So you run and you run to catch up with the sun'"
 author = ["Robert Franolic"]
+date = 2020-03-06
 publishDate = 2020-03-05T00:00:00+00:00
 tags = ["When"]
 draft = false
