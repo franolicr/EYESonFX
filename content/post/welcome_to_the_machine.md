@@ -1,5 +1,5 @@
 +++
-title = "'Welcome my some, welcome to the machine'"
+title = "'Welcome my son, welcome to the machine'"
 author = ["Robert Franolic"]
 publishDate = 2020-03-07T00:00:00+00:00
 tags = ["How"]

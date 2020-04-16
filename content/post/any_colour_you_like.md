@@ -1,5 +1,5 @@
 +++
-title = "The colour of money"
+title = "The Colour of Money"
 author = ["Robert Franolic"]
 tags = ["DataViz"]
 draft = true

@@ -39,7 +39,7 @@ weight = 10  # Order that this section will appear.
   
 [cta]
   url = "/#contact"
-  label = "Sign-up for deeper insights"
+  label = "Connect for deeper insights"
   icon_pack = "fas"
   icon = "envelope"
   

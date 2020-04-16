@@ -10,7 +10,7 @@ authors:
 superuser: true
 
 # Role/position
-role: Founder of EYES on FX
+role: EYES on FX
 
 # Organizations/Affiliations
 organizations:
@@ -18,7 +18,7 @@ organizations:
   url: ""
 
 # Short bio (displayed in user profile at end of posts)
-bio: FX Quantitative Analytics Manager
+bio: Head of Quantitative Analytics
 
 interests:
 - FX and other financial markets

@@ -1,5 +1,5 @@
 +++
-title = "What's in a name?"
+title = "What's in a Name?"
 author = ["Robert Franolic"]
 publishDate = 2020-02-29T00:00:00+00:00
 draft = false
