@@ -1,0 +1,2592 @@
+#+DRAFT: true
+#+HUGO_SECTION: post
+#+HUGO_BASE_DIR: ~/eyesonfx
+#+EXPORT_HUGO_BUNDLE: page-bundle-images-in-same-dir
+#+PROPERTY: header-args:R  :session *R* :results replace :tangle yes :eval no :exports none
+* Setup
+** Standard
+#+BEGIN_SRC R :eval yes
+  source( "~/Dnk/R_setup.R")
+#+END_SRC
+
+#+RESULTS:
+
+** For posts
+#+BEGIN_SRC R :eval yes
+  library( ggplot2)
+  library( png)
+  library( hms)
+  library( bizdays)
+  library( gridExtra)
+  library( timeDate)
+  library( grid)
+  library( animation)
+  library( showtext)
+  library( readxl)
+  library( gridSVG)
+  library( animaker)
+  library( gtools)
+  library( ggrepel)
+
+  # Working directory
+  setwd( "~/eyesonfx/content-org")
+
+  # Fonts
+  font_add_google( "Quantico", "Quantico")
+  font_add_google( "Merriweather", "Merriweather")
+
+  # Colours
+  m$p$clr$grn <- "#439C63"
+  m$p$clr$rd <- "#EA5D79"
+  m$p$clr$drk_gry <- "dark grey"
+  m$p$clr$gry <- "grey"
+  m$p$clr$lght_gry <- "light grey"
+  m$p$clr$bckgrnd_gry <- "grey95"
+
+  # Logo  
+  m$p$plt$eyesonfx_lg <- readPNG( "/Users/rfranolic/eyesonfx/assets/images/logo.png")
+
+
+  # Function to plot 
+  m$f$plt <- function( plt= ggplot(), ttl= "Title",
+		      sbttl= "Subtitle, much longer longer with more details", src= "Source: source"){
+
+      grid.newpage()
+
+      grid.arrange( rectGrob( gp= gpar( fill= m$p$clr$bckgrnd_gry, col= NA)), plt,
+	       rectGrob( gp= gpar( fill= m$p$clr$bckgrnd_gry, col= NA)),
+	       padding= unit( 0, "line"),
+	       heights= c( 35, 740, 15))
+
+      # logo
+      grid.raster( image= m$p$plt$eyesonfx_lg, x= 1- 0.0015, y= 1- 0.0015, vjust= 1, hjust= 1,
+		  height= 0.056)
+
+      # title
+      grid.text( name= "title", label= ttl, x = unit(0.01, "npc"), y = unit(1- 0.01, "npc"),
+		 hjust = 0, vjust = 1, rot = 0,
+		check.overlap = FALSE, default.units = "npc",
+		gp = gpar( fontsize= 18, fontface= "bold"), draw = TRUE, vp = NULL)
+
+      # subtitle
+      grid.text( name= "subtitle", label= sbttl, x = unit(0.01, "npc"), y = unit(1- 0.064, "npc"),
+		 hjust = 0, vjust = 1, rot = 0,
+		check.overlap = FALSE, default.units = "npc",
+		gp = gpar( fontsize= 14), draw = TRUE, vp = NULL)
+
+      grid.text( name= "footer", label= src, x = unit(1- 0.005, "npc"), y = unit( 0.005, "npc"),
+		 hjust = 1, vjust = 0, rot = 0,
+		check.overlap = FALSE, default.units = "npc",
+		gp = gpar( fontsize= 14, col= m$p$clr$gry), draw = TRUE, vp = NULL)
+  }
+
+  # Function to save as SVG
+  m$f$sv_svg <- function( fl= "filepath"){
+      # Initial write
+      grid.export( fl)
+      # Read back in 
+      m$o$svg <- readLines( fl, warn= FALSE)
+      # Amend xml to add id 
+      m$o$svg <- gsub( '<animate xlink:href="#GRID.rastergrob',
+		   '<animate id="anmtn_dmy_id" xlink:href="#GRID.rastergrob', m$o$svg)
+      m$o$svg <- gsub( '"0;anmtn_dmy_id.ends"',
+		      '"0;anmtn_dmy_id.end"', m$o$svg)
+      # Write back file
+      tmp <- file( fl, "w")
+      writeLines( m$o$svg, con = tmp, sep = "\n", useBytes = FALSE)
+      close( tmp)
+  }
+
+  garnishAllGrobs <- function( elt) {
+      print( elt)
+      grid.garnish( path= gPath( elt),
+		      onmousemove = paste("showTooltip(evt, '",
+			gsub("\n", " ", elt), "')",
+			sep = ""),
+		      onmouseout = "hideTooltip()")
+  }
+
+  addTooltips <- function(filename = "Rplots.svg") {
+      lapply( grep( "GRID.", grid.ls( print= FALSE, flatten= TRUE)$name, value= TRUE),
+	     function( x) {
+		  garnishAllGrobs( x)})
+      grid.script(filename = "tooltip.js")
+      grid.export(filename)
+  }
+#+END_SRC
+
+#+RESULTS:
+
+* Posts
+** TODO 'Welcome my son, welcome to the machine'                        :How:
+   SCHEDULED: <2020-03-07 Sat>
+:PROPERTIES:
+:EXPORT_FILE_NAME: welcome_to_the_machine
+:END:
+Following my previous two blogs, in my last Pink Floyd inspired post
+(for now), I explore the workings of the machine that is the FX
+market, and explore different trading mechanisms.
+** TODO 'Grab that cash with both hands and make a stash'               :Why:
+   SCHEDULED: <2020-03-06 Fri>
+:PROPERTIES:
+:EXPORT_FILE_NAME: grab_that_cash_with_both_hands
+:END:
+Continuing with Pink Floyd lyrics, this time from 'Money', I explore
+the motivations for trading in the FX market, by answering the
+question why is FX traded? Unlike the lyrics, the profit motive is not
+necessarily the primary driver.
+#+hugo: more
+
+** 'So you run and you run to catch up with the sun'                   :When:
+SCHEDULED: <2020-03-05 Thu>   
+:PROPERTIES:
+:EXPORT_DATE: 2020-03-06
+:EXPORT_FILE_NAME: so_you_and_you_run
+:END:
+[[file:catch_up_with_the_sun.gif]]
+
+Like the lyrics from Pink Floyd's famous song 'Time', the 24 hour FX
+market is often said to 'chase the sun'. In this blog, using more than
+70 billion data points, I show X different ways in which time has a
+critical impact on the FX market.
+#+hugo: more
+
+*** Read in and summarise data :noexport:
+#+BEGIN_SRC R
+  m$p$fls <- list.files( path= "~/Dnk/Srcs/Tr_FX/Smry/", full.names= TRUE)[
+      grepl( "*.csv", list.files( path= "~/Dnk/Srcs/Tr_FX/Smry/"))]
+
+  m$x$tr_fx$dly <- list()
+  m$x$tr_fx$mntly <- list()
+
+  for ( fl in m$p$fls){
+
+      print( fl)
+      m$i$tr_fx <- fread( fl)
+
+      # Convert time to POSIX and London time
+      m$i$tr_fx[ , tm:= fastPOSIXct( tm, tz= "Europe/London")]
+      m$i$tr_fx[ , N:= as.numeric( N)]
+
+      # Determine FX day as London time + 2 hours - and remove any weekend days that remain
+      m$i$tr_fx[ , fx_dy:= as.Date( tm + 2 * 60 * 60)]
+      m$i$tr_fx <- m$i$tr_fx[ weekdays( fx_dy) %in% c( "Monday", "Tuesday", "Wednesday", "Thursday", "Friday")]
+
+      # Only interested in full years
+      m$i$tr_fx <- m$i$tr_fx[ tm >= as.Date( "2010-01-01") & tm < as.Date( "2020-01-01")]
+
+
+     # Create calendar for business day calculation - sometimes Jan 1 has data, other times not!
+      m$p$clndr <- create.calendar( "working",
+				   weekdays=c( "saturday", "sunday"))
+
+      # Working days in month
+      m$i$tr_fx[ , wrk_dy_mnth:= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr)]
+
+      # Discontinuity between January 2013 and August, and also between April 2016 and June 2017
+      m$p$tr_fx$brks <- data.table( brk= c(  1, 2),
+			       frm= as.Date( c( "2013-01-01",
+				   "2016-04-01")),
+			       to= as.Date( c( "2013-09-01",
+				   "2017-07-01")))
+
+      # Add column for breaks on original data
+      m$i$tr_fx[ , brk:= fifelse( tm >= m$p$tr_fx$brks$frm[1] & tm < m$p$tr_fx$brks$to[1], 1,
+			     fifelse( tm >= m$p$tr_fx$brks$frm[2] & tm < m$p$tr_fx$brks$to[2], 2, 0))]
+
+
+      # Determine good adjustment for the break period
+      m$p$tr_fx$brks <- m$p$tr_fx$brks[ m$i$tr_fx[ , .( N= sum( N)), .( crnc, yr= year( tm), dt= as.Date( tm), brk)][
+		 , .( N= mean( N)),
+		 .( yr_mnth= as.yearmon( dt), mnth= month( dt), brk)][
+	      , .( yr_mnth, N, brk, mn= mean( fifelse( brk==0, N, as.numeric( NA)), na.rm= TRUE)), mnth][
+		, .( yr_mnth, brk, mltpl= N/ mn), ][ , .( mltpl= mean( mltpl)), brk], on= "brk" ]
+
+      # Make adjustments
+      m$i$tr_fx[ m$p$tr_fx$brks, adjst_N:= N / mltpl, on= "brk"]
+
+      # Show adjustments
+      print( m$p$tr_fx$brks)
+
+      # Summarise at day level 
+      m$x$tr_fx$dly[[ which( m$p$fls %in% fl)]] <- m$i$tr_fx[ , .( N= sum( adjst_N), N0= sum( N)),
+			     .( crnc, yr= year( fx_dy), fx_dy)]
+
+      # Determine Working days in month - by counting days in data, or by data calculation
+      #m$x$tr_fx$dly[ [ order( fx_dy), wrk_dy_mnth:= 1:.N, .( yr_mnth= as.yearmon( fx_dy))]  # by counting days in data
+      #m$x$tr_fx$dly[ order( fx_dy), wrk_dy_mnth:= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr)]
+      # Second method works better as there are missing days in the data
+      # Missing days in Febuary 2010 between 2010-02-10 and 2010-02-16 inclusive
+      # Also Missing 2011-01-25
+
+      #m$x$tr_fx$dly[ order( fx_dy), .( fx_dy, wrk_dy_mnth, wday( fx_dy),
+      #				1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr))][
+      #	      year( fx_dy)== 2012 & month( fx_dy)==12]
+
+
+      # Check distribution of working days
+      #m$x$tr_fx$dly[ , .N, wrk_dy_mnth][ order( wrk_dy_mnth)]
+
+      # Summarise at minute level
+      m$x$tr_fx$mntly[[ which( m$p$fls %in% fl)]] <- m$i$tr_fx[ , .( N= sum( adjst_N), N0= sum( N)),
+			       .( crnc, wrk_dy_mnth= 1 -bizdayse( dates= fx_dy, - ( day( fx_dy)- 1), m$p$clndr),
+				 tm= as.POSIXct( "1970-01-01", tz= "Europe/London") +
+				     60 * 60 * hour( tm) + 60 * minute( tm))]
+  }
+
+  m$x$tr_fx$dly <- rbindlist( m$x$tr_fx$dly)
+  m$x$tr_fx$mntly <- rbindlist( m$x$tr_fx$mntly)
+#+END_SRC
+
+- Time of year
+- Time of month
+- The working week
+- Time of the day
+- Intra-hour
+*** Analyse data :noexport:
+#+BEGIN_SRC R
+  m$o$tr_fx <- rbindlist( list(
+      # each month over all 10 years
+      m$x$tr_fx$dly[ , .( grp1= 1, N= sum( N), N0= sum( N0)),
+		    .( lbl= as.character( year( fx_dy)), grp2= year( fx_dy),
+		      tm= as.numeric( as.yearmon( fx_dy)))],  
+  #    # each  month by year
+  #    m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), lbl= month.abb[ min( month( fx_dy))]),
+  #		  .( tm= month( fx_dy), grp1= year( fx_dy))], 
+      # each week of month by year
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), grp2= min( month( fx_dy)),
+			 lbl= month.abb[ min( month( fx_dy))]),
+		    .( tm= week( fx_dy), grp1= year( fx_dy))], 
+      # each working day of month by average month
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0)),
+		    .( lbl= substr( weekdays( fx_dy), 1, 1),
+			    tm= wday( fx_dy)- 1 + 5 * day( fx_dy) %/% 7,
+			    grp2= 5 * day( fx_dy) %/% 7, grp1= month( fx_dy))],
+      # each 15 minute slot of day
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( tm, "%H", tz= "Europe/London"), tm= as.numeric( floor_date( tm, "15 minute")),
+			grp2= hour( tm), grp1= wrk_dy_mnth)],
+      # each minute of hour
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( as.hms( floor_date( tm, "5 minute")), "%M"), tm= minute( tm),
+			grp2= as.numeric( as.hms( floor_date( tm, "5 minute"))), grp1= hour( tm))]),
+      idcol= "typ", use.names= TRUE)
+
+  # Index groups
+  # Ensure Order 
+  #m$o$tr_fx <- m$o$tr_fx[ order( typ, grp1, tm)]
+  m$o$tr_fx[ order( typ, grp1, tm), i:= 1:.N, .( typ, tm)]
+  m$o$tr_fx[ order( typ, grp1, tm), i2:= cumsum( fifelse( grp2== shift( grp2, fill= -1), 0, 1)), .( typ, grp1)] 
+  m$o$tr_fx[ typ== 3, i2:= tm]
+
+  # Highlight important times
+  m$o$tr_fx[ typ== 4 &
+	     tm %in% as.numeric( floor_date( as.POSIXct( c( "1970-01-01 07:00", "1970-01-01 13:00",
+							   "1970-01-01 16:00"),
+							tz= "Europe/London"), "15 minute")), clr:= m$p$clr$grn]
+
+  m$o$tr_fx[ typ== 4 &
+	     tm %in% as.numeric( floor_date( as.POSIXct( c( "1970-01-01 17:00"),
+							tz= "Europe/London"), "15 minute")), clr:= m$p$clr$rd]
+
+  # Highlight (average) week of UK Holidays
+  m$p$hldys <-  as.data.table( table( week( holidayLONDON( year= 2010:2019))))
+  setnames( m$p$hldys, c( "wk", "N"))
+  m$p$hldys[ , hldy:= c( "New Years", rep( "Easter", 5), rep( "May Day", 2), rep( "Last May Monday", 3),
+		       rep( "August Bank Holiday", 2),  "Christmas")]
+
+  m$o$tr_fx[ typ== 2 & tm %in%
+	     m$p$hldys[ , .( sum( N), wk= mean( as.numeric( wk))), hldy][ , round( wk)],
+	    clr:= m$p$clr$rd]
+
+  m$o$cmnts <- list(
+      3, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD")
+
+
+  m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
+				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
+  m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
+
+  m$p$prds <- data.table( lbl= c( "10 years", "Avg year", "Avg month", "Avg day", "Avg hour"),
+			 x= seq( 1, by= 70, length.out= 5), i= 1:5)
+
+
+
+  m$f$plt <- function( tp, j, k){
+      ggplot( data= m$o$tr_fx[ typ== j]) +
+	  # highlighted times
+	  geom_segment( data= function( x) x[ tp== TRUE & !is.na( clr),
+					     .( frst_grp1= min( grp1), grp1, clr, tm), .( lbl)][ frst_grp1== grp1],
+		       mapping= aes( x= tm, xend= tm, colour= I( clr)),
+		       size= 1, y= -Inf, yend= +Inf)+
+	  # lines for each group 
+	  geom_line( data= function( x) x[ tp== TRUE  & k< 998 & i<= k],
+		    mapping= aes( x= tm, y= N, group= grp1, 
+				 colour= I( c( "grey80", "grey50", rep( "grey20", 100))[ i])),
+		    size= 1.5, alpha= 0.75) +
+	  #geom_line( data= function( x) x[ tp== TRUE  & i <= k & k< 999],
+	  #          mapping= aes( x= tm, y= N, group= grp1), size= 2, colour= NA) +
+	  # total line for top graph 
+	  geom_line( data= function( x) x[ tp== TRUE & k >= 2 & i <= k, .( N= sum( N)), .( tm)],
+		    mapping= aes( x= tm, y= N),
+		    colour= "black", size= 1.5) +
+	  # total line for bottom graph
+	  geom_line( data= function( x) x[ tp== FALSE][ order( tm), .( N= sum( N), i2= min( i2)), .( tm)],
+		    mapping= aes( x= tm, y= N, 
+				 colour= I( ifelse( i2 > 0 & k >= 998, "black",
+						   c( "grey80", "grey50", rep( "grey20", 100))[ i2]))),
+		    size= 1.5, alpha= 0.75) +
+	  # labels - for groups
+	  geom_text( data= function( x) x[ tp== TRUE & k < 2, .( lbl, i2, grp1, mx_N= max(N), mn_N= min( N)), tm][
+					  , .( tm= min( tm), mx_N= max( mx_N), mn_N= min( mn_N), lbl= max( lbl)), i2][
+					   , .( tm, lbl, mx_N= max( mx_N), mn_N= min( mn_N))],
+		    mapping= aes( x= tm, label= lbl, y= floor( mn_N + ( mx_N- mn_N)* 0.97)),
+		    hjust= 0, size= 5, colour= "grey10", vjust= 1) +
+	  # vertical guideline labels - for total
+	  geom_text( data= function( x)
+	      x[tp== FALSE | ( k >= 2 & i <= k), .( lbl, i2, tm, N= sum(N)), tm][
+		, .( mn_tm= min( tm), lbl, tm, mx_N= max( N), mn_N= min( N)), .( i2)][
+		 ,.( tm= min( tm), lbl= max( lbl), mx_N= max( mx_N), mn_N= min( mn_N)), i2][
+		, .( lbl, tm, mx_N= max( mx_N), mn_N= min( mn_N))][ order( tm)],
+		    mapping= aes( x= tm, label= lbl, y= floor( mn_N + ( mx_N- mn_N)* 0.97)),
+		    hjust= 0, size= 5, colour= "grey10", vjust= 1) +
+	  # vertical guidelines
+	  geom_segment( data= function( x) x[ tp== FALSE & k != 999,
+					     .( frst_tm= min( tm), tm), .( i2)][ frst_tm== tm],
+		       mapping= aes( x= tm, xend= tm), y= -Inf, yend= +Inf, colour= m$p$clr$lght_gry) +
+	  # shading for bottom plot
+	  geom_rect( data= function( x) x[ tp== FALSE & typ== j & ( k>= 998 | i2> k),
+					  .( mn= min( tm), mx= max( tm))],
+		    mapping= aes( xmin= mn, xmax= mx),
+		    fill= m$p$clr$drk_gry, alpha= 0.5, ymin= -Inf, ymax= Inf) +
+	  scale_y_continuous( expand= expansion(mult = 0, add = 0)) +
+	  scale_x_continuous( expand= expansion(mult = 0.004, add = 0)) +
+  #        scale_colour_manual( values= rep( c( "grey80", "grey50", "grey20"), 300), guide= NULL) +
+	  theme_void() +
+		  theme( plot.background= element_rect( fill= "grey95", colour= NA),
+				       panel.background= element_rect( fill= "grey95", colour= NA))
+  }
+
+
+  m$o$ftr_plt <- m$p$ftr_plt
+  saveGIF({ ani.options(interval = 1, nmax = 75)
+      for( j in m$o$tr_fx[ , .N, typ][ , typ][]){
+	  m$o$hdr_plt <- m$p$hdr_plt +
+	      geom_rect( data= m$p$prds, mapping= aes( xmin= x, xmax= x+ 70,
+						       fill= I( ifelse( i== j, m$p$clr$bckgrnd_gry, m$p$clr$lght_gry))),
+						       ymin= 0, ymax= 25, colour= m$p$clr$bckgrnd_gry) +
+	      geom_text( data= m$p$prds, mapping= aes( x= x + 70/2, label= lbl,
+						      colour= I( ifelse( i== j, "black", m$p$clr$drk_gry))),
+		y= 12, size= 5)
+
+	  for( k in c( 1, 2, 3, 4, m$o$tr_fx[ typ== j, max( i)], 998: 1000)){
+	      if( j== 1 & k < 998)
+		  next
+	      m$o$plt1 <- m$f$plt( tp= TRUE, j= j, k= k)
+	      m$o$plt2 <-
+		  ggplot() +
+		  annotate( geom= "rect", fill= m$p$clr$drk_gry, alpha= 0.5,
+					      xmin= -Inf, xmax= +Inf, ymin= -Inf, ymax= +Inf) +
+		  scale_y_continuous( expand= expansion(mult = 0, add = 0)) +
+		  scale_x_continuous( expand= expansion(mult = 0.004, add = 0)) +
+		  theme( plot.background= element_rect( fill= "grey95", colour= NA),
+				       panel.background= element_rect( fill= "grey95", colour= NA))
+	      #ggplot() + theme_void() + annotate( geom= "rect", fill= m$p$drk_gry, alpha= 0.25)
+	      if( k < 998) m$o$plt2 <- m$f$plt( tp= FALSE, j= j-1, k= k)
+	      if( j!= 5 & k == 999) m$o$plt2 <- m$f$plt( tp= FALSE, j= j, k= k)
+	      if( j!= 5 & k == 1000) m$o$plt2 <- m$f$plt( tp= FALSE, j= j, k= k)
+	      grid.arrange( m$o$hdr_plt, m$o$plt1, m$o$plt2, m$o$ftr_plt,
+			   padding= unit( 0, "line"),
+			   heights= c( 25, 750/2, 750/2 , 15))
+	  }
+      }
+  }, movie.name = "catch_up_with_the_sun.gif", ani.width = 500, ani.height = 800)
+
+#+END_SRC
+
+- Time of year
+- Time of month
+- The working week
+- Time of the day
+- Intra-hour 
+*** Analyse data - old                                             :noexport:
+#+BEGIN_SRC R
+  m$o$tr_fx <- rbindlist( list(
+      # each month over all 10 years
+      m$x$tr_fx$dly[ , .( grp1= 1, N= sum( N), N0= sum( N0)),
+		    .( lbl= as.character( year( fx_dy)), grp2= year( fx_dy),
+		      tm= as.numeric( as.yearmon( fx_dy)))],  
+  #    # each  month by year
+  #    m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), lbl= month.abb[ min( month( fx_dy))]),
+  #		  .( tm= month( fx_dy), grp1= year( fx_dy))], 
+      # each week of month by year
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), grp2= min( month( fx_dy)),
+			 lbl= month.abb[ min( month( fx_dy))]),
+		    .( tm= week( fx_dy), grp1= year( fx_dy))], 
+      # each working day of month by average month
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0)),
+		    .( lbl= substr( weekdays( fx_dy), 1, 1),
+			    tm= wday( fx_dy)- 1 + 5 * day( fx_dy) %/% 7,
+			    grp2= 5 * day( fx_dy) %/% 7, grp1= month( fx_dy))],
+      # each 15 minute slot of day
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( tm, "%H", tz= "Europe/London"), tm= as.numeric( floor_date( tm, "15 minute")),
+			grp2= hour( tm), grp1= wrk_dy_mnth)],
+      # each minute of hour
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( as.hms( floor_date( tm, "5 minute")), "%M"), tm= minute( tm),
+			grp2= as.numeric( as.hms( floor_date( tm, "5 minute"))), grp1= hour( tm))]),
+      idcol= "typ", use.names= TRUE)
+
+  # Index groups
+  # Ensure Order 
+  #m$o$tr_fx <- m$o$tr_fx[ order( typ, grp1, tm)]
+  m$o$tr_fx[ order( typ, grp1, tm), i:= 1:.N, .( typ, tm)]
+  m$o$tr_fx[ order( typ, grp1, tm), i2:= cumsum( fifelse( grp2== shift( grp2, fill= -1), 0, 1)), .( typ, grp1)] 
+  m$o$tr_fx[ typ== 3, i2:= tm]
+
+  # Highlight important times
+  m$o$tr_fx[ typ== 4 &
+	     tm %in% as.numeric( floor_date( as.POSIXct( c( "1970-01-01 07:00", "1970-01-01 13:00",
+							   "1970-01-01 16:00"),
+							tz= "Europe/London"), "15 minute")), clr:= m$p$clr$grn]
+
+  m$o$tr_fx[ typ== 4 &
+	     tm %in% as.numeric( floor_date( as.POSIXct( c( "1970-01-01 17:00"),
+							tz= "Europe/London"), "15 minute")), clr:= m$p$clr$rd]
+
+  # Highlight (average) week of UK Holidays
+  m$p$hldys <-  as.data.table( table( week( holidayLONDON( year= 2010:2019))))
+  setnames( m$p$hldys, c( "wk", "N"))
+  m$p$hldys[ , hldy:= c( "New Years", rep( "Easter", 5), rep( "May Day", 2), rep( "Last May Monday", 3),
+		       rep( "August Bank Holiday", 2),  "Christmas")]
+
+  m$o$tr_fx[ typ== 2 & tm %in%
+	     m$p$hldys[ , .( sum( N), wk= mean( as.numeric( wk))), hldy][ , round( wk)],
+	    clr:= m$p$clr$rd]
+
+  m$o$cmnts <- list(
+      3, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD")
+
+
+  m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
+				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
+  m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
+
+  m$p$prds <- data.table( lbl= c( "10 years", "Avg year", "Avg month", "Avg day", "Avg hour"),
+			 x= seq( 1, by= 70, length.out= 5), i= 1:5)
+
+
+
+  m$f$plt <- function( tp, j, k){
+      ggplot( data= m$o$tr_fx[ typ== j]) +
+	  # highlighted times
+	  geom_segment( data= function( x) x[ tp== TRUE & !is.na( clr),
+					     .( frst_grp1= min( grp1), grp1, clr, tm), .( lbl)][ frst_grp1== grp1],
+		       mapping= aes( x= tm, xend= tm, colour= I( clr)),
+		       size= 1, y= -Inf, yend= +Inf)+
+	  # lines for each group 
+	  geom_line( data= function( x) x[ tp== TRUE  & k< 998 & i<= k],
+		    mapping= aes( x= tm, y= N, group= grp1, 
+				 colour= I( c( "grey80", "grey50", rep( "grey20", 100))[ i])),
+		    size= 1.5, alpha= 0.75) +
+	  #geom_line( data= function( x) x[ tp== TRUE  & i <= k & k< 999],
+	  #          mapping= aes( x= tm, y= N, group= grp1), size= 2, colour= NA) +
+	  # total line for top graph 
+	  geom_line( data= function( x) x[ tp== TRUE & k >= 2 & i <= k, .( N= sum( N)), .( tm)],
+		    mapping= aes( x= tm, y= N),
+		    colour= "black", size= 1.5) +
+	  # total line for bottom graph
+	  geom_line( data= function( x) x[ tp== FALSE][ order( tm), .( N= sum( N), i2= min( i2)), .( tm)],
+		    mapping= aes( x= tm, y= N, 
+				 colour= I( ifelse( i2 > 0 & k >= 998, "black",
+						   c( "grey80", "grey50", rep( "grey20", 100))[ i2]))),
+		    size= 1.5, alpha= 0.75) +
+	  # labels - for groups
+	  geom_text( data= function( x) x[ tp== TRUE & k < 2, .( lbl, i2, grp1, mx_N= max(N), mn_N= min( N)), tm][
+					  , .( tm= min( tm), mx_N= max( mx_N), mn_N= min( mn_N), lbl= max( lbl)), i2][
+					   , .( tm, lbl, mx_N= max( mx_N), mn_N= min( mn_N))],
+		    mapping= aes( x= tm, label= lbl, y= floor( mn_N + ( mx_N- mn_N)* 0.97)),
+		    hjust= 0, size= 5, colour= "grey10", vjust= 1) +
+	  # vertical guideline labels - for total
+	  geom_text( data= function( x)
+	      x[tp== FALSE | ( k >= 2 & i <= k), .( lbl, i2, tm, N= sum(N)), tm][
+		, .( mn_tm= min( tm), lbl, tm, mx_N= max( N), mn_N= min( N)), .( i2)][
+		 ,.( tm= min( tm), lbl= max( lbl), mx_N= max( mx_N), mn_N= min( mn_N)), i2][
+		, .( lbl, tm, mx_N= max( mx_N), mn_N= min( mn_N))][ order( tm)],
+		    mapping= aes( x= tm, label= lbl, y= floor( mn_N + ( mx_N- mn_N)* 0.97)),
+		    hjust= 0, size= 5, colour= "grey10", vjust= 1) +
+	  # vertical guidelines
+	  geom_segment( data= function( x) x[ tp== FALSE & k != 999,
+					     .( frst_tm= min( tm), tm), .( i2)][ frst_tm== tm],
+		       mapping= aes( x= tm, xend= tm), y= -Inf, yend= +Inf, colour= m$p$clr$lght_gry) +
+	  # shading for bottom plot
+	  geom_rect( data= function( x) x[ tp== FALSE & typ== j & ( k>= 998 | i2> k),
+					  .( mn= min( tm), mx= max( tm))],
+		    mapping= aes( xmin= mn, xmax= mx),
+		    fill= m$p$clr$drk_gry, alpha= 0.5, ymin= -Inf, ymax= Inf) +
+	  scale_y_continuous( expand= expansion(mult = 0, add = 0)) +
+	  scale_x_continuous( expand= expansion(mult = 0.004, add = 0)) +
+  #        scale_colour_manual( values= rep( c( "grey80", "grey50", "grey20"), 300), guide= NULL) +
+	  theme_void() +
+		  theme( plot.background= element_rect( fill= "grey95", colour= NA),
+				       panel.background= element_rect( fill= "grey95", colour= NA))
+  }
+
+
+  m$o$ftr_plt <- m$p$ftr_plt
+  saveGIF({ ani.options(interval = 1, nmax = 75)
+      for( j in m$o$tr_fx[ , .N, typ][ , typ][]){
+	  m$o$hdr_plt <- m$p$hdr_plt +
+	      geom_rect( data= m$p$prds, mapping= aes( xmin= x, xmax= x+ 70,
+						       fill= I( ifelse( i== j, m$p$clr$bckgrnd_gry, m$p$clr$lght_gry))),
+						       ymin= 0, ymax= 25, colour= m$p$clr$bckgrnd_gry) +
+	      geom_text( data= m$p$prds, mapping= aes( x= x + 70/2, label= lbl,
+						      colour= I( ifelse( i== j, "black", m$p$clr$drk_gry))),
+		y= 12, size= 5)
+
+	  for( k in c( 1, 2, 3, 4, m$o$tr_fx[ typ== j, max( i)], 998: 1000)){
+	      if( j== 1 & k < 998)
+		  next
+	      m$o$plt1 <- m$f$plt( tp= TRUE, j= j, k= k)
+	      m$o$plt2 <-
+		  ggplot() +
+		  annotate( geom= "rect", fill= m$p$clr$drk_gry, alpha= 0.5,
+					      xmin= -Inf, xmax= +Inf, ymin= -Inf, ymax= +Inf) +
+		  scale_y_continuous( expand= expansion(mult = 0, add = 0)) +
+		  scale_x_continuous( expand= expansion(mult = 0.004, add = 0)) +
+		  theme( plot.background= element_rect( fill= "grey95", colour= NA),
+				       panel.background= element_rect( fill= "grey95", colour= NA))
+	      #ggplot() + theme_void() + annotate( geom= "rect", fill= m$p$drk_gry, alpha= 0.25)
+	      if( k < 998) m$o$plt2 <- m$f$plt( tp= FALSE, j= j-1, k= k)
+	      if( j!= 5 & k == 999) m$o$plt2 <- m$f$plt( tp= FALSE, j= j, k= k)
+	      if( j!= 5 & k == 1000) m$o$plt2 <- m$f$plt( tp= FALSE, j= j, k= k)
+	      grid.arrange( m$o$hdr_plt, m$o$plt1, m$o$plt2, m$o$ftr_plt,
+			   padding= unit( 0, "line"),
+			   heights= c( 25, 750/2, 750/2 , 15))
+	  }
+      }
+  }, movie.name = "catch_up_with_the_sun.gif", ani.width = 500, ani.height = 800)
+
+#+END_SRC
+
+- Time of year
+- Time of month
+- The working week
+- Time of the day
+- Intra-hour
+
+** Location, Location, Location                                       :Where:
+   SCHEDULED: <2020-03-03 Tue>
+:PROPERTIES:
+:EXPORT_FILE_NAME: location_location_location
+:END:
+file:lctn_lctn_lctn.svg
+
+Location, location, location is a mantra used in the property market
+to stress the importance of a property's location to it's
+value. Location is also important in FX markets, and here I use the
+expression to indicate that an FX trade may involve three locations:
+the location of the two counterparts, and, most importantly, where
+they come together to execute the trade, the trading venue. 
+
+The majority of FX trades are executed electronically on different
+trading 'venues'. In this article, using monthly data published by the
+venues, I explore the distribution of activity across them and how it
+has evolved over time.
+#+hugo: more
+
+*** Read in and summarise data                                     :noexport:
+#+BEGIN_SRC R
+  m$i <- list()
+  m$x <- list()
+
+  # CBOE
+  m$i$CBOE <- fread( file= "/Dnk/Srcs/CBOE_FX/Extrct/cboe_vlm.csv")
+  m$x$CBOE <- m$i$CBOE[ , .( mnth= as.Date( mnth), vlm= vlm/ 1e3, adv= adv/ 1e3)]
+
+  # Deutsche Bourse 360T
+  m$i$Dtsch_Brs <- fread( file= "/Dnk/Srcs/Dtsch_Brs//Extrct/Dtsch_Brs_vlm.csv")
+  m$x$Dtsch_Brs <- m$i$Dtsch_Brs[ , .( vlm= sum( vlm)/1e9, adv= sum( vlm)/.N/1e9),
+				 .( mnth= floor_date( as.Date( dt), "month"))]
+
+
+  #EBS
+  m$i$EBS <- fread( "/Dnk/Srcs/EBS/Extrct/EBS_vlm.csv", header= TRUE)
+  setnames( m$i$EBS, c( "mnth", "vlm", "vs_lst_mnth", "vs_lst_yr"))
+
+  m$i$EBS[ , `:=`( mnth= as.Date( mnth, format= "%d/%m/%Y"),
+	       vs_lst_mnth= as.numeric( gsub( "%", "", vs_lst_mnth))/100,
+	       vs_lst_yr= as.numeric( gsub( "%", "", vs_lst_yr))/100)]
+
+  m$i$EBS[ order( mnth),
+	  .( vlm- ( 1+ vs_lst_mnth) * shift( vlm))]
+
+  m$x$EBS <- m$i$EBS[ , .( mnth, adv= vlm)]
+
+  # Euronext Fast match
+  m$i$ernxt <- fread( file= "/Dnk/Srcs/Ernxt_FX/Extrct/Ernxt_vlm.csv")
+  m$x$ernxt <- m$i$ernxt[ , .( vlm= sum( vlm)/1e9, adv= sum( vlm)/.N/1e9),
+			 .( mnth= floor_date( as.Date( dt), "month"))]
+
+  # FX Spot stream
+  m$i$spt_strm <- fread( "/Dnk/Srcs/FX_Spt_Strm/Extrct/FXSptStrm_vlm.csv")
+  m$x$spt_strm <- m$i$spt_strm[ , .( mnth= as.Date( mnth), vlm= vlm/1e3, adv= adv/1e3)]
+
+  # Integral OCX
+  m$i$intgrl <- fread( file= "/Dnk/Srcs/Intgrl_OCX/Extrct/OCX_vlm.csv")
+  m$x$intgrl <- m$i$intgrl[ , .( mnth= as.Date( mnth), adv)]
+
+  # Refinitiv
+  m$i$rfntv <- fread( file= "/Dnk/Srcs/Rfntv/Extrct/rfntv_vlm.csv")
+  m$x$rfntv <- m$i$rfnt[ , .(mnth= as.Date( mnth), adv= vlm)]
+
+  # CLS
+  m$i$CLS <- fread( file= "/Dnk/Srcs/CLS/Extrct/cls_vlms.csv")
+  m$x$CLS <- m$i$CLS[ instrmnt== "Spot", .( mnth= as.Date( mnth), adv= vlm)]
+
+  # Combine
+  m$x$vns <- rbindlist( m$x, fill= TRUE, use.names= TRUE, idcol= "vn")
+  m$x$vns
+  m$x$vns[ , .( mn_vlm= mean( vlm), mn_adv= mean( adv)), vn]
+
+
+  m$o$vns <- m$x$vns[ , .( vn, adv, adv_shr= adv/sum( fifelse( vn== 'CLS', adv, 0), na.rm= T)),
+		     .( mnth)][ adv_shr < Inf & vn!= "CLS"]
+
+
+  m$o$vns[ , mnth:= as.POSIXct( mnth)]
+  m$o$vns[ , vn_nm:= unlist( list( CBOE= "Cboe FX", Dtsch_Brs= "360T", EBS= "EBS", ernxt= "Euronext FX",
+			  spt_strm= "FXSpotStream", rfntv= "Refinitiv", intgrl= "Integral OCX")[
+		 vn])]
+
+  m$o$vns[ , vn:= factor( vn, m$o$vns[ mnth== max( mnth), adv, vn][ order( adv), vn])]
+  m$o$vns[ , vn_nm:= factor( vn_nm, m$o$vns[ mnth== max( mnth), adv, vn_nm][ order( adv), vn_nm])]
+  m$o$vns <- m$o$vns[ order( vn, mnth)]
+#+END_SRC
+*** Show data                                                      :noexport:
+#+BEGIN_SRC R
+  quartz( width= 1.25 * 5, height= 1.25 * 5)
+  #quartz( width= 1.25 * 5, height= 1.25 * 8)
+
+  # adjustment for labels
+  m$o$vns[ , adj_adv_shr:= adv_shr + fifelse( vn %in% c( "ernxt", "intgrl"), .003,
+					     fifelse( vn %in% c( "Dtsch_Brs", "CBOE"), -.003, 0))]
+  m$o$vns[ , adj_adv:= adv + fifelse( vn %in% c( "ernxt", "intgrl"), 2,
+				     fifelse( vn %in% c( "Dtsch_Brs", "CBOE"), -2, 0))]
+
+  m$o$plt1 <- ggplot( data= m$o$vns[ mnth< '2025-01-01']) +
+  #m$o$plt1 <- ggplot( data= m$o$vns) +
+      annotate( geom= "segment", colour= "white",
+	       x= as.POSIXct( "2016-01-01"), xend= as.POSIXct( "2021-02-01"),
+	       y= seq( .0, .25, .05), yend= seq( .0, .25, .05), size= 1.5) +
+  #    annotate( geom= "text", colour= "white",
+  #             x= as.POSIXct( "2016-01-01"), y= seq( .0, .25, .05),
+  #             label= paste0( seq( 0, 25, 5), "%"), hjust= 0, vjust= 0) +
+      annotate( geom= "text", colour= "black",
+	       x= as.POSIXct( c( "2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01")),
+	       y= 0, label= 2016:2020, hjust= 0, vjust= 1) +
+      geom_line( mapping= aes( x= mnth, y= adv_shr, group= vn),
+		colour= m$p$clr$drk_gry, size= 1) +
+      geom_line( mapping= aes( x= mnth, y= adv_shr, group= vn),
+		colour= m$p$clr$rd, size= 2) +
+      geom_text( data= function( x) x[ , .( adj_adv_shr, adv_shr, mnth, mx= max( mnth)) , vn_nm][
+				       mnth== mx],
+		mapping= aes( x= mnth+ days( 10), y= adj_adv_shr,
+			     label= paste0( vn_nm, " ", round( 100 * adv_shr, 0), "%")),
+		colour= m$p$clr$drk_gry, hjust= 0, size= 5) +
+      # Highlight line for market share
+      geom_text( data= function( x) x[ , .( adj_adv_shr, adv_shr, mnth, mx= max( mnth)) , vn_nm][
+				       mnth== mx],
+		mapping= aes( x= mnth+ days( 10), y= adj_adv_shr,
+			     label= paste0( vn_nm, " ", round( 100 * adv_shr, 0), "%")),
+		colour= m$p$clr$rd, fontface= "bold", hjust= 0, size= 5) +
+      theme_void() +
+      scale_y_continuous( limits= c( 0, .25)) +
+      scale_x_datetime( limits= as.POSIXct( unlist( m$o$vns[ , .( min( mnth) - months( 3),
+								 max( mnth) + months( 28))]),
+					   origin= "1970-01-01"),
+		       expand= expansion(mult = 0, add = 0)) + 
+      theme( plot.background= element_rect( fill= "grey95", colour= NA),
+	    panel.background= element_rect( fill= "grey95", colour= NA), legend.position= "none")
+
+  m$f$plt( plt= m$o$plt1, ttl= "Volumes by Venue",
+	  sbttl= paste0( "Monthly Average daily spot volume ($ billions) to ",
+			strftime( m$o$vns[ , max( mnth)], "%B %Y")),
+	  src= "Source: CLS and Venues' respective websites")
+
+  grid.force()
+  m$p$ln1 <- lapply( grep( "GRID.polyline", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$sgmnt1 <- lapply( grep( "GRID.segment", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$txt1 <- lapply( grep( "GRID.text", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[ 2:3]
+
+  m$o$plt2 <- ggplot( data= m$o$vns[ mnth< '2025-01-01']) +
+  #m$o$plt2 <-  ggplot( data= m$o$vns) +
+  #    annotate( geom= "segment", colour= "white",
+  #	     x= as.POSIXct( "2016-01-01"), xend= as.POSIXct( "2021-02-01"),
+  #	     y= seq( 0, 125, 25), yend= seq( 0, 125, 25), size= 1.5) +
+  #    annotate( geom= "text", colour= "white",
+  #             x= as.POSIXct( "2016-01-01"), y= seq( 0, 125, 25),
+  #             label= paste0( "$", seq( 0, 125, 25), "B."), hjust= 0, vjust= 0 ) +
+      annotate( geom= "text", colour= "black",
+	       x= as.POSIXct( c( "2016-01-01", "2017-01-01", "2018-01-01", "2019-01-01", "2020-01-01")),
+	       y= 0, label= 2016:2020, size= 5, hjust= 0, vjust= 1.1) +
+      geom_line( mapping= aes( x= mnth, y= adv, group= vn),
+		colour= m$p$clr$drk_gry, size= 1) +
+      geom_line( mapping= aes( x= mnth, y= adv, group= vn),
+		colour= m$p$clr$rd, size= 2) +
+      geom_text( data= function( x) x[ , .( adj_adv, adv, mnth, mx= max( mnth)) , vn_nm][
+				       mnth== mx],
+		mapping= aes( x= mnth+ days( 10), y= adj_adv,
+			     label= vn_nm),
+		colour= m$p$clr$drk_gry, fontface= "bold", hjust= 0, size= 5) +
+      geom_text( data= function( x) x[ , .( adj_adv, adv, mnth, mx= max( mnth)) , vn_nm][
+				       mnth== mx],
+		mapping= aes( x= mnth+ days( 10), y= adj_adv,
+			     label= paste0( vn_nm, " ", round( adv, 0))),
+		colour= m$p$clr$rd, fontface= "bold", hjust= 0, size= 5) +
+      # Highlight line for market share
+      geom_text( data= function( x) x[ , .( adj_adv, adv_shr, mnth, mx= max( mnth)) , vn_nm][
+				       mnth== mx],
+		mapping= aes( x= mnth+ days( 10), y= adv_shr,
+			     label= paste0( vn_nm, " ", round( 100 * adv_shr, 0), "%")),
+		colour= m$p$clr$rd, fontface= "bold", hjust= 0, size= 5) +
+      theme_void() +
+      scale_x_datetime( limits= as.POSIXct( unlist( m$o$vns[ , .( min( mnth)- months( 3),
+								 max( mnth) + months( 21))]),
+					   origin= "1970-01-01"),
+		       expand= expansion(mult = 0, add = 0)) + 
+      scale_y_continuous( limits= c( 0, 150)) +
+      theme( plot.background= element_rect( fill= "grey95", colour= NA),
+	    panel.background= element_rect( fill= "grey95", colour= NA), legend.position= "none") +
+      annotate( label= "1) Highly variable over time, peak\nacross all venues in Mar 2020.",
+	       x= as.POSIXct( "2020-01-15"), y= 145, hjust= 1, vjust= 1, alpha= .8,
+	       geom= "label", colour= "white", fill= m$p$clr$rd, size= 5, fontface= "bold") +
+      annotate( label= "2) Calculate market share\nby dividing through \nby CLS volumes.",
+	       x= as.POSIXct( "2018-09-15"), y= 75, hjust= 1, vjust= 1, alpha= .6,
+	       geom= "label", colour= "white", fill= "black", size= 5, fontface= "bold") +
+      annotate( label= "3) Market share % less variable\nallowing venue comparison.",
+	       x= as.POSIXct( "2020-01-15"), y= 77.5, hjust= 1, vjust= 0.5, alpha= .8,
+	       geom= "label", colour= "white", fill= m$p$clr$rd, size= 5, fontface= "bold") +
+      # Highlight March 2020
+      annotate( x= as.POSIXct( "2020-03-01"), xend= as.POSIXct( "2020-03-01"),
+	       y= 0, yend= 150, geom= "segment", colour= m$p$clr$rd, size= 1, alpha= 0.5)
+
+  m$f$plt( plt= m$o$plt2, ttl= "Volumes by Venue",
+	  sbttl= paste0( "Monthly Average Daily Spot Volume ($ Billions) to ",
+			strftime( m$o$vns[ , max( mnth)], "%b %Y")),
+  #	sbttl= "Average daily spot volume each month to Febraury 2020",
+	  src= "Source: Venues' and CLS's respective websites")
+
+  #grid.text( name= "cmnt1", label= "Volumes pick up in February", x= 2/3, y = .45,
+  #		 hjust = 1, vjust = 0.5, check.overlap = FALSE, default.units = "npc",
+  #		gp = gpar( fontsize= 14, fontface= "bold", col= "black", fill= "white"), draw = TRUE, vp = NULL)
+
+  grid.force()
+  m$p$ln2 <- lapply( grep( "GRID.polyline", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$sgmnt2 <- lapply( grep( "GRID.segment", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$txt2 <- lapply( grep( "GRID.text", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[2:4]
+  m$p$lbl2 <- lapply( grep( "GRID.label", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$icn <- lapply( grep( "GRID.rastergrob", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[[1]]
+
+  #addTooltips("tooltips.svg")
+
+  # Define animation
+  m$p$anmtn <- vec(
+      atomic( label= "cycl_clr", durn= 5),
+      atomic( label= "adv_2_shr", durn= 5), 
+      atomic( label= "end", durn= 3)
+  )
+
+  # Dummy animation to coordinate timing of other animations
+  grid.animate( m$p$icn$name, visibility= c( "visible", "visible"),
+	       begin= "0;anmtn_dmy_id.end", duration= 18)
+
+  # Animate line between adv and adv share
+  grid.animate( m$p$ln2[[1]]$name,
+		   y= animUnit( x= unit( c( m$p$ln2[[1]]$y, m$p$ln1[[1]]$y), unit= "native"),
+			       id= rep( m$p$ln1[[1]]$id, 2),
+			       timeid= rep( 1:2, each= length( m$p$ln1[[1]]$id))),
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
+
+  grid.animate( m$p$ln2[[2]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$txt2[[2]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$txt2[[3]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  # Hide comments visible/invisible
+  grid.animate( m$p$lbl2[[1]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$sgmnt2[[1]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$lbl2[[2]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$lbl2[[3]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+
+  #grid.animate( m$p$ln2[[1]]$name,
+  #             y= animUnit( x= rep( m$p$ln2[[1]]$y,2),
+  #                         timeid= rep( m$p$ln2[[1]]$id, each= 2),
+  #                         id=  rep( m$p$ln2[[1]]$id,2)),
+  #	     begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+
+  # Ensure y values for grey line are set to adv (since in the second animation in the sequence they will change)
+  grid.animate( m$p$ln2[[1]]$name, #"GRID.polyline", grep= TRUE, global= TRUE,    #m$p$ln2[[1]]$name,
+		   y= animUnit( x= rep( m$p$ln2[[1]]$y, 1+ length( m$p$ln2[[2]]$gp$col)),
+			       id= rep( m$p$ln2[[1]]$id, 1+ length( m$p$ln2[[2]]$gp$col)),
+			       timeid=  rep( 1:( length( m$p$ln2[[2]]$gp$col)+ 1),
+					   each= length( m$p$ln2[[1]]$id))),
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 8)
+
+  grid.animate( m$p$ln2[[2]]$name, #"GRID.polyline", grep= TRUE, global= TRUE,    #m$p$ln2[[1]]$name,
+		   y= animUnit( x= rep( m$p$ln2[[1]]$y, 1+ length( m$p$ln2[[2]]$gp$col)),
+			       id= rep( m$p$ln2[[1]]$id, 1+ length( m$p$ln2[[2]]$gp$col)),
+			       timeid=  rep( 1:( length( m$p$ln2[[2]]$gp$col)+ 1),
+					   each= length( m$p$ln2[[1]]$id))),
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 8)
+
+  # Ensure y values for grey line labels are set adv for lines as well
+  grid.animate( m$p$txt2[[1]]$name, #grep= TRUE, global= TRUE, #m$p$txt2[[1]]$name,
+	       y= animUnit( rep( m$p$txt2[[1]]$y, 1+ length( m$p$ln2[[2]]$gp$col)),
+						id= rep(1:length( m$p$txt2[[1]]$y), 1+ length( m$p$ln2[[2]]$gp$col))),
+					   interpolate= "discrete",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 8)
+  grid.animate( m$p$txt2[[2]]$name, #grep= TRUE, global= TRUE, #m$p$txt2[[1]]$name,
+	       y= animUnit( rep( m$p$txt2[[2]]$y, 1+ length( m$p$ln2[[2]]$gp$col)),
+						id= rep(1:length( m$p$txt2[[1]]$y), 1+ length( m$p$ln2[[2]]$gp$col))),
+					   interpolate= "discrete",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 8)
+
+  # Ensure y values for axis lines 
+  #grid.animate( m$p$sgmnt2[[1]]$name, #grep= TRUE, global= TRUE, #m$p$txt2[[1]]$name,
+  #             y0= animUnit( m$p$sgmnt[[1]]$y0), y1= animUnit( m$p$sgmnt[[1]]$y1),
+  #	     begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+
+  # Make each highlighted line visible in turn
+  grid.animate( m$p$ln2[[2]]$name, visibility= animValue( fifelse(
+							    c( as.logical( diag( length( m$p$ln2[[2]]$gp$col))),
+							      rep( FALSE, length( m$p$ln2[[2]]$gp$col)))== TRUE,
+							"visible", "hidden"),
+						   id= rep( 1:(length( m$p$ln2[[2]]$gp$col)),
+							   length( m$p$ln2[[2]]$gp$col)+ 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
+
+  # Make each highlighted line text visible in turn
+  grid.animate( m$p$txt2[[2]]$name, visibility= animValue( fifelse(
+							    c( as.logical( diag( length( m$p$txt2[[2]]$gp$col))),
+							      rep( FALSE, length( m$p$txt2[[2]]$gp$col)))== TRUE,
+							"visible", "hidden"),
+						   id= rep( 1:(length( m$p$txt2[[2]]$gp$col)),
+							   length( m$p$txt2[[2]]$gp$col)+ 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
+
+  # Adv shares always hidden
+  grid.animate( m$p$txt2[[3]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
+
+  # Make comments visible/invisible
+  grid.animate( m$p$lbl2[[1]]$name, grep= TRUE, global= TRUE, visibility= "visible",
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
+  grid.animate( m$p$sgmnt2[[1]]$name, visibility= "visible",
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
+  grid.animate( m$p$lbl2[[2]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
+  grid.animate( m$p$lbl2[[3]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
+
+
+  # Animate line between adv and adv share
+  grid.animate( m$p$ln2[[1]]$name,
+		   y= animUnit( x= unit( c( m$p$ln2[[1]]$y, m$p$ln1[[1]]$y), unit= "native"),
+			       id= rep( m$p$ln1[[1]]$id, 2),
+			       timeid= rep( 1:2, each= length( m$p$ln1[[1]]$id))),
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
+
+  # Animate label for line - only a sinlge point per text, so don't specifiy timeid
+  grid.animate( m$p$txt2[[1]]$name,
+		   y= animUnit( x= unit( c( m$p$txt2[[1]]$y, m$p$txt1[[1]]$y), unit= "native"),
+			       id= c( 1:length(m$p$txt2[[1]]$y),  1:length(m$p$txt1[[1]]$y))),
+  #			     timeid= rep( 1:2, each= length( m$p$txt2[[1]]$y))), DONT UNDERSTAND WHY THIS DOESNT WORK
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
+
+  # Make comments visible/invisible
+  grid.animate( m$p$lbl2[[1]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
+  grid.animate( m$p$sgmnt2[[1]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
+  grid.animate( m$p$lbl2[[2]]$name, grep= TRUE, global= TRUE, visibility= "visible",
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
+  grid.animate( m$p$lbl2[[3]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
+
+  # Ensure y values for highlight line are set to adv_shr
+  grid.animate( m$p$ln2[[2]]$name,
+		   y= animUnit( x= rep( m$p$ln1[[1]]$y, 1+ length( m$p$ln1[[2]]$gp$col)),
+			       id= rep( m$p$ln1[[1]]$id, 1+ length( m$p$ln1[[2]]$gp$col)),
+			       timeid=  rep( 1:( length( m$p$ln1[[2]]$gp$col)+ 1),
+					   each= length( m$p$ln1[[1]]$id))),
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+
+  # Ensure y values for grey line labels are set adv for lines as well
+  grid.animate( m$p$txt2[[2]]$name, y= animUnit( rep( m$p$txt1[[1]]$y, 1+ length( m$p$ln1[[2]]$gp$col)),
+						id= rep(1:length( m$p$txt1[[1]]$y), 1+ length( m$p$ln1[[2]]$gp$col))),
+					   interpolate= "discrete",
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+
+  # Make each highlighted line visible in turn
+  grid.animate(  m$p$ln2[[2]]$name, visibility= animValue( fifelse(
+							    c( as.logical( diag( length( m$p$ln1[[2]]$gp$col))),
+							      rep( FALSE, length( m$p$ln1[[2]]$gp$col)))== TRUE,
+							"visible", "hidden"),
+						   id= rep( 1:(length( m$p$ln1[[2]]$gp$col)),
+							   length( m$p$ln1[[2]]$gp$col)+ 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+
+  # Make each highlighted line text visible in turn
+  grid.animate( m$p$txt2[[3]]$name, visibility= animValue( fifelse(
+							    c( as.logical( diag( length( m$p$txt2[[3]]$gp$col))),
+							      rep( FALSE, length( m$p$txt2[[3]]$gp$col)))== TRUE,
+							"visible", "hidden"),
+						   id= rep( 1:(length( m$p$txt2[[3]]$gp$col)),
+							   length( m$p$txt2[[3]]$gp$col)+ 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+  # ... and y position from frist graph
+  grid.animate( m$p$txt2[[3]]$name, y= animUnit( m$p$txt1[[2]]$y,
+						   id= rep( 1:(length( m$p$txt2[[3]]$gp$col)),
+							   length( m$p$txt2[[3]]$gp$col)+ 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+
+  # Adv always hidden
+  grid.animate( m$p$txt2[[2]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+
+
+  # Make comments visible/invisible
+  grid.animate( m$p$lbl2[[1]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+  grid.animate( m$p$sgmnt2[[1]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+  grid.animate( m$p$lbl2[[2]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+  grid.animate( m$p$lbl2[[3]]$name, grep= TRUE, global= TRUE, visibility= "visible",
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
+  m$f$sv_svg( "lctn_lctn_lctn.svg")
+
+#+END_SRC
+
+** Who's Who in the Zoo                                                 :Who:
+   SCHEDULED: <2020-03-02 Mon>
+:PROPERTIES:
+:EXPORT_FILE_NAME: whos_who
+:END:
+
+file:whos_who.svg
+
+Who are the most important players in the FX market.
+
+#+hugo: more
+In my last post, I described what the main
+- Herfindahl Index?
+Concentration within the FX market
+- Rise of non-Bank liquidity providers
+
+#+BEGIN_SRC R
+  m$i$ermny <- fread( "/Dnk/Srcs/Ermny/Out/Ermny_Srvy.csv")
+
+  # restrict to top 10
+  m$x$ermny <- m$i$ermny[ rnk <= 10]
+  m$x$ermny[ lp== "Bank of America Merrill Lynch", lp:= "Bank of America"]
+
+  # Order by when LP's appeated, earliest first, then by rank in that year
+  m$p$lps <- m$x$ermny[ , .( frst_yr= min( yr), yr, rnk), lp][ yr== frst_yr]
+
+  m$x$ermny[ , lp:= factor( lp, levels= m$p$lps$lp)]
+
+  m$p$yrs <- m$x$ermny[ , unique( yr)]
+
+
+  m$o$ermny <- m$x$ermny[ order( yr, rnk)]
+
+  # Ensure have row for every lp for every year
+  m$o$ermny <- merge( x= m$o$ermny, y= CJ( yr= unique( m$o$ermny$yr), lp= unique( m$o$ermny$lp)),
+	by= c( "yr", "lp"), all.y= TRUE, allow.cartesian= TRUE)
+
+  m$o$ermny[ , alph:= fifelse( is.na( rnk), 0, 1)]
+  m$o$ermny[ , shp:= fifelse( is.na( rnk), 1, 21)]
+  m$o$ermny[ is.na( rnk), rnk:= 5]
+  m$o$ermny[ is.na( shr), shr:= 0]
+
+
+  m$o$ermny[ , lbl:= gsub( " ", "\n", lp)]
+  m$o$ermny[ lp== "Bank of America", lbl:= "Bank of\nAmerica"]
+
+  m$o$ermny[ , rnk_x := ( yr- 2009)/ 10 * 0.5]
+  m$o$ermny[ , shr_x := 0.7 + shr/ round( max( shr), 1)]
+  m$o$ermny[ , y := -as.numeric( lp)]
+
+  quartz( width= 1.25 * 5, height= 1.25 * 5)
+
+  m$o$plt <- ggplot( data= m$o$ermny) +
+      annotate( geom= "segment",
+	       x= c( ( 2010:2019- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
+	       xend= c( ( 2010:2019- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
+	       colour= "white", y= c( rep( 0, 15)), yend= -17) +
+      annotate( geom= "text", x= c( 0.05, 0.7), y= c( .5, .5), hjust= 0,
+	       label= c( "Rank", "Market Share"), size= 5) + 
+  #    annotate( geom= "text", x= c( seq( 2010, 2018, 2)- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
+  #             y= rep( 0, 10), label= c( paste0( "'", seq( 10, 18, 2)), paste0( seq( 0, 20, 5), "%")),
+  #             hjust= 0.25) +
+      annotate( geom= "text", x= c( ( c( 2010, 2019)- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
+	       y= rep( 0, 7), label= c( "2010", "2019", paste0( seq( 0, 20, 5), "%")),
+	       hjust= 0.25) +
+      geom_point( mapping= aes( x= rnk_x, y= y, fill= rnk, shape= I( shp), alpha= I( alph)+ 0.5),
+		 size= 7) +
+      geom_text( mapping= aes( x= rnk_x, y= y, label= rnk, alpha= I( alph)), size= 4.5) +
+      geom_segment( mapping= aes( x= 0.7, xend= shr_x, y= y, yend= y), size= 2) +
+      geom_point( mapping= aes( x= shr_x, y= y, fill= rnk, alpha= I( alph)), shape= 21, size= 7) +
+      geom_text( mapping= aes( x= shr_x, y= y, label= rnk, alpha= I( alph)), size= 4) +
+      scale_fill_gradient2( low= m$p$clr$grn, mid= "white", high= m$p$clr$rd,
+			   midpoint= 5) +
+      scale_x_continuous( limits= c( -.6, 1.72)) +
+      scale_y_continuous( limits= c( -17, 1)) +
+      geom_text( data= function( x) x[ , .N, .( y, lp)],
+		mapping= aes( y= y, label= lp), size= 5, x= -.02, hjust= 1) + 
+      geom_text( data= function( x) x[ , .N, yr],
+		mapping= aes( label= paste0( "Market Share - ", yr)),
+			     x= 0.7, y= .5, hjust= 0, size= 5) +
+      theme_void() +
+      theme( plot.background= element_rect( fill= "grey95", colour= NA),
+	    panel.background= element_rect( fill= "grey95", colour= NA),
+	    legend.position = "none")
+
+  m$f$plt( plt= m$o$plt, ttl= "Top Liquidity Providers 2010-19",
+	    sbttl= "Euromoney FX Survey rankings and market shares each year",
+	    src= "Source: Euromoney")
+
+  grid.force()
+
+  m$p$sgmnt <- lapply( grep( "GRID.segment", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[2:3]
+  m$p$pnts  <- lapply( grep( "geom_point", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$rnks  <- lapply( grep( "GRID.text", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[3:4]
+  m$p$yr_txts <- lapply( grep( "GRID.text", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[6]
+  m$p$icn <- lapply( grep( "GRID.rastergrob", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[[1]]
+
+  # Dummy animation to coordinate timing of other animations
+  grid.animate( m$p$icn$name, visibility= c( "visible", "visible"),
+		 begin= "0;anmtn_dmy_id.end", duration= 35)
+
+  # hide everything initially
+  grid.animate( m$p$pnts[[1]]$name,
+	       visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 2, interpolate= "discrete")
+  grid.animate( m$p$rnks[[1]]$name,
+	       visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 2, interpolate= "discrete")
+
+  # make only current year visisble
+  m$p$msk <- rep( "hidden", length( m$p$yrs) * dim( m$p$lps)[1])
+
+  i= 0
+  for( i in 0:( length( m$p$yrs)- 1)){
+  #for( i in 0:0){
+
+  # Hide lines    
+  grid.animate( m$p$sgmnt[[1]]$name, x1= animUnit(
+					 x= unit( c( m$p$sgmnt[[1]]$x0,
+						    ifelse( 1:length(m$p$msk) %in%
+							( 1:length( m$p$lps$lp) + length( m$p$lps$lp) * i),
+							m$p$sgmnt[[1]]$x1, m$p$sgmnt[[1]]$x0)), units= "native"),
+					 id= rep( 1:160, 2)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i), duration= 2)
+  # Hide all circles on market shares
+  grid.animate( m$p$pnts[[2]]$name,
+	       visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i), duration= 2, interpolate= "discrete")
+  # Hide all cricle labels on market shares
+  grid.animate( m$p$rnks[[2]]$name,
+	       visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i), duration= 2, interpolate= "discrete")
+
+  # Hide all year labels but current year
+  grid.animate( m$p$yr_txts[[1]]$name,
+	       visibility= animValue(
+					 x=  ifelse( m$p$yrs== m$p$yrs[ i+1],
+						    "visible", "hidden"),
+		   id= 1:length( m$p$yrs)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i), duration= 3, interpolate= "discrete")
+
+  # Hide all circles on market shares, except current year    
+  grid.animate( m$p$pnts[[2]]$name,
+	       visibility= animValue(
+					 x=  ifelse( 1:length(m$p$msk) %in%
+							( 1:length( m$p$lps$lp) + length( m$p$lps$lp) * i),
+							"visible", "hidden"),
+					 id= rep( 1:160, 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i+ 2), duration= 1, interpolate= "discrete")
+  grid.animate( m$p$rnks[[2]]$name,
+	       visibility= animValue(
+					 x=  ifelse( 1:length(m$p$msk) %in%
+							( 1:length( m$p$lps$lp) + length( m$p$lps$lp) * i),
+							"visible", "hidden"),
+					 id= rep( 1:160, 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i+ 2), duration= 1, interpolate= "discrete")
+
+  grid.animate( m$p$pnts[[1]]$name,
+	       visibility= animValue(
+					 x=  ifelse( 1:length(m$p$msk) <= ( 1+ i) * dim( m$p$lps)[1],
+							"visible", "hidden"),
+					 id= rep( 1:160, 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i+ 2), duration= 3, interpolate= "discrete")
+  grid.animate( m$p$rnks[[1]]$name,
+	       visibility= animValue(
+					 x=  ifelse( 1:length(m$p$msk) <= ( 1+ i) * dim( m$p$lps)[1],
+							"visible", "hidden"),
+					 id= rep( 1:160, 1)),
+	       begin= paste0( "anmtn_dmy_id.begin+", 3* i+ 2), duration= 3, interpolate= "discrete")
+  }
+  #i= 0
+  #for( i in 0:( length( m$p$yrs)- 1)){
+  #    grid.animate( m$p$sgmnt[[1]]$name, visible= animValue(
+  #                                           x= ifelse( 1:length(m$p$msk) ==
+  #                                                      ( 1:length( m$p$lps$lp) + length( m$p$lps$lp) * i),
+  #                                                  "visible", "hidden"), id= 1:160),
+  #             begin= paste0( "anmtn_dmy_id.begin+", 3 * 0), duration= 30)
+  #}
+
+  grid.animate( m$p$pnts[[1]]$name,
+	       visibility= "visible",
+	       begin= paste0( "anmtn_dmy_id.begin+", 32), duration= 3, interpolate= "discrete")
+  grid.animate( m$p$rnks[[1]]$name,
+	       visibility= "visible",
+	       begin= paste0( "anmtn_dmy_id.begin+", 32), duration= 3, interpolate= "discrete")
+
+  m$f$sv_svg( "~/eyesonfx/content-org/whos_who.svg")
+
+#+END_SRC
+
+** What's What?                                              :tag1:viz:@What:
+   SCHEDULED: <2020-03-01 Sun>
+:PROPERTIES:
+:EXPORT_FILE_NAME: whats_what
+:END:
+Seven key facts about the currencies traded in the FX market using data from the BIS surveys. 
+
+[[file:Whats_what.gif]]
+
+*** Script for video :noexport:
+In this animation we're using data from the BIS triannual survey
+to see how FX trading activity in different currency pairs has evolved
+over time.
+
+Each dot represents 5 billion dollars worth of the row currency
+traded with the column currency. 
+
+We start in 1992 and we can see that back then the dollar dominates,
+with 80% of activity in the dollar column.
+
+Through 1995 and 1998 we mostly see green growth, with only a single
+red decline. But in 2001, EMU results in declines, particulalry in
+EURO pairs, although there is growth in some non-Euro pairs.
+
+In 2004, activity in Euro pairs rebounds and there is growth in most
+pairs which continues in 2007, 2010 and 2013. 
+
+In 2016, there is a contraction in the largest currency pairs, but
+Chinese Yuan and many Asian pairs continue to grow.
+
+By 2019, activity in most pairs is at its highest, and overall there
+has been huge growth with dollar pairs still dominating as they did
+back in 1992.
+
+#+BEGIN_SRC R
+  m$i$bis <- fread( "~/Dnk/Srcs/BIS/Out/Crcny_Prs.csv")
+
+  m$i$bis[ , vl:= vl/1e3]
+  # Unit size (in billions)
+  m$p$unt_sz <- 5
+
+  # Identify pre-Euro currencies, as those not present in 2019
+  m$p$eur_crncys <- m$i$bis[ !crncy1 %in% m$i$bis[ yr== 2019, unique( crncy1)],
+			    .( yr= max( yr)),
+			    .( crncy= crncy1)]
+  m$i$bis[ crncy1 %in% m$p$eur_crncys$crncy, crncy1 := 'EUR']
+  m$i$bis[ crncy2 %in% m$p$eur_crncys$crncy, crncy2 := 'EUR']
+
+  m$i$bis <- m$i$bis[ crncy1!= "USD" & ( crncy1!= "EUR" | ( crncy1== "EUR" & crncy2 %in% c( "other", "USD"))) &
+	   ( crncy1!= "other" | ( crncy1== "other" & crncy2 %in% c( "other", "USD"))) &
+	  crncy2 %in% c( "USD", "EUR", "other")]
+
+  # Identify small currencies (less that unit size on average) and merge into "other"
+  m$p$sml_crncy <- m$i$bis[ , .( vl= sum( vl)), .( yr, crncy1)][ , .( vl= mean( vl)), crncy1][ vl <= m$p$unt_sz, crncy1]
+  m$i$bis[ crncy1 %in% m$p$sml_crncy, crncy1:= "other"]
+
+  m$i$bis[ crncy1== "other" & crncy2== "other", vl:= vl/ 2]
+
+  # aggregate (for EUR and countercurrency changes) and convert to billions
+  m$x$bis <- m$i$bis[ , .( vl= sum( vl)), .( yr, crncy1, crncy2)]  
+
+
+
+  # reorder currencies based on value (but always put "other" last) 
+  m$x$bis[ , crncy2 := factor( crncy2, levels= c( "USD", "EUR", "other"))]
+  m$x$bis[ , crncy1 := factor( crncy1,
+			      c( m$x$bis[ yr== 2019 & crncy1 != "other",
+					 .( vl= sum( vl)), crncy1][ order( -vl), crncy1],
+				"other"))]
+
+  m$x$bis <- m$x$bis[ order( crncy1, crncy2, yr)]
+
+  # Work out x position of each counter-currency - using highest max value across the years
+  m$o$crncy_x <- m$x$bis[ , .( wdth= 2* ( sum( vl))^0.51), .( yr, crncy2)][
+		       order( crncy2), .( wdth= max( wdth)), .( crncy2)]
+  m$o$crncy_x[ , crncy_x:= as.numeric( crncy2)* m$p$unt_sz + cumsum( wdth)- wdth]
+  setkeyv( m$o$crncy_x, "crncy2")
+
+  # Work out y position of each currency
+  m$o$crncy_y <- m$x$bis[ , .( mx_vl= max( vl), vl, crncy2), .( crncy1)][ vl== mx_vl, .( crncy1, crncy2, mx_vl)]
+  m$o$crncy_y <- m$o$crncy_y[ m$o$crncy_x, .( crncy1, hght= ( mx_vl/ ( wdth/ m$p$unt_sz))), on= "crncy2"]
+  m$o$crncy_y[ hght < 2.1 * m$p$unt_sz, hght:= 2.1 * m$p$unt_sz]
+  m$o$crncy_y[ order( crncy1), crncy_y:= cumsum( 1.5 * m$p$unt_sz + hght)- hght]
+  setkeyv( m$o$crncy_y, "crncy1")
+
+
+  # Create units of 1 billion
+  m$i$unts <- data.table( n= seq( 0, 1590, by= m$p$unt_sz), dmy= 1)
+  # dummy needed to allow cross join
+  m$x$bis[ , dmy:= 1]  
+  # Disaggregate to units
+  m$o$bis <- merge( m$x$bis, m$i$unts, allow.cartesian= TRUE, by= "dmy")
+  m$o$bis[ , prsnt:= round( vl, 0) >= n] # + m$p$unt_sz/ 2]
+  # Remove unnnecessary rows - n is greater than the maxium n present
+  m$o$bis <- m$o$bis[ , .( yr, mx= max( n* prsnt), vl, n, prsnt), .( crncy1, crncy2)][ n <= mx]
+
+  # Identify gains and losses
+  m$o$bis[ order( crncy1, crncy2, n, yr), prvs_prsnt:= shift( prsnt), .( crncy1, crncy2, n)] 
+  m$o$bis[ prsnt== TRUE & is.na( prvs_prsnt), prvs_prsnt:= TRUE] # treat new pair as if they were present before
+  m$o$bis <- m$o$bis[ prsnt== TRUE | prvs_prsnt== TRUE,
+	  sgn:= as.numeric( prsnt)- as.numeric( prvs_prsnt)]
+
+
+  # Repeat each year three times: first time to highlight losses, next to highlight gains and last the final position
+  m$o$bis <- m$o$bis[ rep( 1:.N, each= 3), cbind( i= 1:3, .SD)][ order( yr, sgn),
+								cbind( frm= i + 3* ( .GRP- 1), .SD), yr]
+
+  m$o$bis[ , clr:= fifelse( sgn== -1, m$p$clr$rd, fifelse( sgn== 0, m$p$clr$drk_gry, m$p$clr$grn))]
+
+  m$o$bis <- rbindlist( list(
+      m$o$bis[ i== 1 & sgn != 1],
+      m$o$bis[ i== 2 & sgn != -1],
+      m$o$bis[ i== 3 & sgn != -1][, clr:= m$p$clr$drk_gry]))
+
+  setkeyv( m$o$bis, "crncy2")
+  m$o$bis <- m$o$bis[ m$o$crncy_x]
+  setkeyv( m$o$bis, "crncy1")
+  m$o$bis <- m$o$bis[ m$o$crncy_y]
+
+  # Position units
+  m$o$bis[ , x:= n %% ( m$p$unt_sz * round( wdth / m$p$unt_sz, 0))]
+  m$o$bis[ , y:= n %/% ( m$p$unt_sz * round( wdth / m$p$unt_sz, 0)) * m$p$unt_sz ]
+
+  # Commentary
+  m$o$cmnts <- list(
+      3, "black", 115, -350, "1) Start in 1992. Each dot represent 5 billion (in dollars) \n traded between the column currency and row currency.\n Trades against US dollars (first column) dominate",
+  #    4, "black", 85, -300, "1) Dollar dominates in 1992 \n- 80% of trades against USD",
+      5, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
+      6, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
+      7, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
+      8, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
+      10, m$p$clr$rd, 120, -42, "3) European Monetary Union leads to large reductions in Euro pairs",
+      11, m$p$clr$rd, 120, -42, "3) European Monetary Union leads to large reductions in Euro pairs",
+      12, m$p$clr$rd, 120, -42, "3) European Monetary Union leads to large reductions in Euro pairs",
+      11, m$p$clr$grn, 115, -145, "3) ... but there is\ngrowth in several\nother pairs",
+      12, m$p$clr$grn, 115, -145, "3) ... but there is\ngrowth in several\nother pairs",
+      14, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      15, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      16, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      17, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      18, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      19, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      20, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      21, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      22, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      23, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      24, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      25, m$p$clr$rd, 210, -35, "5) Many large pairs\ndecline in 2016",
+      26, m$p$clr$rd, 210, -35, "5) Many large pairs\ndecline in 2016",
+      27, m$p$clr$rd, 210, -35, "5) Many large pairs\ndecline in 2016",
+      26, m$p$clr$grn, 90, -470, "5) ... but Chinese Yuan \n(CNY) and many Asian\npairs continue to grow",
+      27, m$p$clr$grn, 90, -470, "5) ... but Chinese Yuan \n(CNY) and many Asian\npairs continue to grow",
+      28, m$p$clr$grn, 100, -500, "6) Return to growth in\n2019 for most but JPY",
+      29, m$p$clr$grn, 100, -500, "6) Return to growth in\n2019 for most but JPY",
+      30, m$p$clr$grn, 100, -500, "6) Return to growth in\n2019 for most but JPY",
+      30, "black", 92, -600, "7) Dollar still dominates in\n2019 as it did in 1992")
+
+
+  m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
+				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
+  m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
+
+  # Years
+  m$o$yrs <- m$o$bis[ !is.na( yr), .N, yr]
+
+
+  m$p$frms <- m$o$bis[ yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]
+  m$p$frms <- c( m$p$frms[1], m$p$frms)
+
+  # Let's plot it!
+  #saveGIF({ ani.options(interval = 2, nmax = 75)
+  saveVideo({ 
+  #for( j in m$o$bis[ yr== 2016  & yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
+  for( j in m$p$frms <- c( m$p$frms[1], m$p$frms[1], m$p$frms)){
+      print(
+	  ggplot( data= m$o$bis[ frm== j]) +
+	  # years -  background tiles
+	  geom_tile( data= function( x)
+	      x[ , .N, yr][ m$o$yrs, on= "yr"][
+		, .( yr, n= seq_along( yr),
+		    fll= fifelse( is.na( N), m$p$clr$lght_gry, m$p$clr$bckgrnd_gry),
+		  clr= fifelse( is.na( N), m$p$clr$drk_gry, m$p$clr$bckgrnd_gry))],
+	      mapping= aes( x= -36 + n * 22, y= 29, colour= I( clr), fill= I( fll)),
+	      width= 22, height= 20) +
+	  # years - text
+	  geom_text( data= function( x)
+	      x[ , .N, .( i, yr)][ m$o$yrs, on= "yr"][
+		, .( yr, n= seq_along( yr),
+		    fll= fifelse( is.na( N), m$p$clr$lght_gry, "white"),
+		    fntfc= fifelse( is.na( N), "plain", "bold"),
+		    clr= fifelse( is.na( N), m$p$clr$drk_gry,
+				 ifelse(  i <= 1, m$p$clr$rd,
+						    ifelse( i <= 2, m$p$clr$grn, "black"))))],
+	      mapping= aes( x= -36 + n * 22, y= 29, label= yr, fontface= I( fntfc), colour= I( clr)),
+	      size= 5) +
+	  # logo
+	  annotation_custom( rasterGrob( m$p$plt$eyesonfx_lg), xmin= 202, xmax=260, ymin=14, ymax=40) +
+	  # vertical lines
+	  geom_segment( data= m$o$crncy_x,
+			mapping= aes( x= crncy_x - 4, xend= crncy_x - 4,
+				     y= 15, yend= -655),
+		       colour= "white", size= 0.5) +
+	  # horizontal lines
+	  geom_segment( data= m$o$crncy_y,
+			mapping= aes( x= -25, xend= +Inf,
+				     y= -crncy_y + m$p$unt_sz, yend= -crncy_y + m$p$unt_sz),
+		       colour= "white", size= 0.5) +
+	  # gain/loss label
+	  geom_label( data= function( x) x[ , .N, .( yr, i)][
+					   , .( lbl= ifelse(  i <= 1, "loss",
+						     ifelse( i <= 2, "gain", "final")),
+					       fll= ifelse(  i <= 1, m$p$clr$rd,
+						    ifelse( i <= 2, m$p$clr$grn, "black")))],
+		     mapping= aes( x= -13, y= 9, label= lbl, fill= I( fll)),
+		     fontface= "bold", colour= "white", size= 6, label.size= unit( 1, "mm"),
+		     label.padding= unit( 0.25, "lines"),
+		     hjust= 0.5, vjust= 0.5) +
+	  # currencies - across top
+	  geom_text( data= function( x)
+	      x[ , .( crncy_x= max( crncy_x)+ min( x), sgn= mean( sgn), i= max( i)), .( crncy2)][
+		 ,.( crncy_x, clr= fifelse( sgn== 0 | i>= 3, "black", fifelse( sgn< 0, m$p$clr$rd, m$p$clr$grn)),
+		    fnt= fifelse( mean(sgn)== 0 | i>= 3, "plain", "bold")),
+			       .( crncy2)],
+		mapping= aes( x= crncy_x, y= 1, label= crncy2, colour= I( clr), fontface= I( fnt)),
+		hjust= 0, vjust= 0, size= 5.5) +
+	  # currencies - down the side
+  #	geom_text( data= function( x)
+  #	    x[ , .( y= min( crncy_y) + min( y) + m$p$unt_sz), .( crncy1)],
+  #	    mapping= aes( y= -y, label= crncy1),
+  #            colour= "black", fontface= "plain",
+  #	    x= -25, hjust= 0, vjust= 0.5, size= 5.5) +
+	  # highlight
+  #	geom_text( data= function( x)
+  #	    x[ sgn!= 0 & i < 3,
+  #              .( n, mx= max( n), y= crncy_y + min( y) + m$p$unt_sz,
+  #		   clr),
+  #	      .( crncy1)][ n== mx],
+  #	    mapping= aes( y= -y, label= crncy1, colour= I( clr)),
+  #            fontface= "bold", x= -25, hjust= 0, vjust= 0.5, size= 5.5) +
+	  # currencies - down the side
+	    geom_text( data= function( x)
+		x[ , .( n, mx= max( n), y= crncy_y + min( y) + m$p$unt_sz,
+		       clr= fifelse( sgn== 0 | i>= 3, "black", clr),
+		       fnt= fifelse( sgn== 0 | i>= 3, "plain", "bold")),
+		  .( crncy1)][ n== mx][ order( -clr)],
+		mapping= aes( y= -y, label= crncy1, colour= I( clr), fontface= I( fnt)),
+		x= -25, hjust= 0, vjust= 0.5, size= 5.5) +
+	  # blank dots
+	  geom_point( mapping= aes( x= crncy_x + x, y= -crncy_y -y),
+		     colour= "white", alpha= 1, size= 2.5) +
+	  # dots
+	  geom_point( mapping= aes( x= crncy_x + x, y= -crncy_y -y, colour= I( clr)),
+		     alpha= 1, size= 2.5) +
+	  # key dot
+	  annotate( geom= "point", x= 5, y= -659, size= 2.5, colour= m$p$clr$drk_gry) + 
+	  # key text
+	  annotate( geom= "text", x= 7, y= -663, hjust= 0, vjust= 0, size= 5,
+		   label= " = 5 billion USD average daily") +
+	  # source
+	  annotate( geom= "text", x= 259, y= -663, hjust= 1, vjust= 0, size= 5,
+		   label= "Source: BIS", colour= m$p$clr$drk_gry) +
+	  # commentary
+	  geom_label( data= m$o$cmnts[ frm== j],
+		 mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
+		 alpha= 1.0, colour= "white", size= 6, fontface= "bold") +
+	  scale_x_continuous( limits= c( -26, 260), expand= expansion(mult = 0, add = 0)) +
+	  scale_y_continuous( limits= c( -665, 40), expand= expansion(mult = 0, add = 0)) +
+  #      theme_grey()) 
+	 theme_void() +
+      theme( panel.background= element_rect(fill = NA, colour= NA),
+	    plot.background = element_rect( colour= NA, fill = m$p$clr$bckgrnd_gry)))
+  #    geom_label( data= function( x) x[ n==0],
+  #	      mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
+  #	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
+  #	      hjust= 0, vjust= 0.5 ) +
+  }}
+  #, movie.name = "Whats_what.gif", ani.width = 500* 1.25, ani.height = 500* 1.25) 
+  , video.name = "Whats_what.mp4", ani.width = 624, ani.height = 624, interval= 2) 
+#+END_SRC
+
+*** Old  :noexport:
+#+BEGIN_SRC R
+  m$i$bis <- fread( "/Dnk/Srcs/BIS/Out/Crcny_Prs.csv")
+
+  m$i$bis[ , vl:= vl/1e3]
+  # Unit size (in billions)
+  m$p$unt_sz <- 5
+
+  # Identify pre-Euro currencies, as those not present in 2019
+  m$p$eur_crncys <- m$i$bis[ !crncy1 %in% m$i$bis[ yr== 2019, unique( crncy1)],
+			    .( yr= max( yr)),
+			    .( crncy= crncy1)]
+  m$i$bis[ crncy1 %in% m$p$eur_crncys$crncy, crncy1 := 'EUR']
+  m$i$bis[ crncy2 %in% m$p$eur_crncys$crncy, crncy2 := 'EUR']
+
+  m$i$bis <- m$i$bis[ crncy1!= "USD" & ( crncy1!= "EUR" | ( crncy1== "EUR" & crncy2 %in% c( "other", "USD"))) &
+	   ( crncy1!= "other" | ( crncy1== "other" & crncy2 %in% c( "other", "USD"))) &
+	  crncy2 %in% c( "USD", "EUR", "other")]
+
+  # Identify small currencies (less that unit size on average) and merge into "other"
+  m$p$sml_crncy <- m$i$bis[ , .( vl= sum( vl)), .( yr, crncy1)][ , .( vl= mean( vl)), crncy1][ vl <= m$p$unt_sz, crncy1]
+  m$i$bis[ crncy1 %in% m$p$sml_crncy, crncy1:= "other"]
+
+  m$i$bis[ crncy1== "other" & crncy2== "other", vl:= vl/ 2]
+
+  # aggregate (for EUR and countercurrency changes) and convert to billions
+  m$x$bis <- m$i$bis[ , .( vl= sum( vl)), .( yr, crncy1, crncy2)]  
+
+
+
+  # reorder currencies based on value (but always put "other" last) 
+  m$x$bis[ , crncy2 := factor( crncy2, levels= c( "USD", "EUR", "other"))]
+  m$x$bis[ , crncy1 := factor( crncy1,
+			      c( m$x$bis[ yr== 2019 & crncy1 != "other",
+					 .( vl= sum( vl)), crncy1][ order( -vl), crncy1],
+				"other"))]
+
+  m$x$bis <- m$x$bis[ order( crncy1, crncy2, yr)]
+
+  # Work out x position of each counter-currency - using highest max value across the years
+  m$o$crncy_x <- m$x$bis[ , .( wdth= 2* sqrt( sum( vl))), .( yr, crncy2)][
+		       order( crncy2), .( wdth= max( wdth)), .( crncy2)]
+  m$o$crncy_x[ , crncy_x:= as.numeric( crncy2)* m$p$unt_sz + cumsum( wdth)- wdth]
+  setkeyv( m$o$crncy_x, "crncy2")
+
+  # Work out y position of each currency
+  m$o$crncy_y <- m$x$bis[ , .( mx_vl= max( vl), vl, crncy2), .( crncy1)][ vl== mx_vl, .( crncy1, crncy2, mx_vl)]
+  m$o$crncy_y <- m$o$crncy_y[ m$o$crncy_x, .( crncy1, hght= ( mx_vl/ ( wdth/ m$p$unt_sz))), on= "crncy2"]
+  m$o$crncy_y[ hght < 2.1 * m$p$unt_sz, hght:= 2.1 * m$p$unt_sz]
+  m$o$crncy_y[ order( crncy1), crncy_y:= cumsum( 1.5 * m$p$unt_sz + hght)- hght]
+  setkeyv( m$o$crncy_y, "crncy1")
+
+
+  # Create units of 1 billion
+  m$i$unts <- data.table( n= seq( 0, 1590, by= m$p$unt_sz), dmy= 1)
+  # dummy needed to allow cross join
+  m$x$bis[ , dmy:= 1]  
+  # Disaggregate to units
+  m$o$bis <- merge( m$x$bis, m$i$unts, allow.cartesian= TRUE, by= "dmy")
+  m$o$bis[ , prsnt:= round( vl, 0) >= n] # + m$p$unt_sz/ 2]
+  # Remove unnnecessary rows - n is greater than the maxium n present
+  m$o$bis <- m$o$bis[ , .( yr, mx= max( n* prsnt), vl, n, prsnt), .( crncy1, crncy2)][ n <= mx]
+
+  # Identify gains and losses
+  m$o$bis[ order( crncy1, crncy2, n, yr), prvs_prsnt:= shift( prsnt), .( crncy1, crncy2, n)] 
+  m$o$bis[ prsnt== TRUE & is.na( prvs_prsnt), prvs_prsnt:= TRUE] # treat new pair as if they were present before
+  m$o$bis <- m$o$bis[ prsnt== TRUE | prvs_prsnt== TRUE,
+	  sgn:= as.numeric( prsnt)- as.numeric( prvs_prsnt)]
+
+
+  # Repeat each year three times: first time to highlight losses, next to highlight gains and last the final position
+  m$o$bis <- m$o$bis[ rep( 1:.N, each= 3), cbind( i= 1:3, .SD)][ order( yr, sgn),
+								cbind( frm= i + 3* ( .GRP- 1), .SD), yr]
+
+  m$o$bis[ , clr:= fifelse( sgn== -1, m$p$clr$rd, fifelse( sgn== 0, m$p$clr$drk_gry, m$p$clr$grn))]
+
+  m$o$bis <- rbindlist( list(
+      m$o$bis[ i== 1 & sgn != 1],
+      m$o$bis[ i== 2 & sgn != -1],
+      m$o$bis[ i== 3 & sgn != -1][, clr:= m$p$clr$drk_gry]))
+
+  setkeyv( m$o$bis, "crncy2")
+  m$o$bis <- m$o$bis[ m$o$crncy_x]
+  setkeyv( m$o$bis, "crncy1")
+  m$o$bis <- m$o$bis[ m$o$crncy_y]
+
+  # Position units
+  m$o$bis[ , x:= n %% ( m$p$unt_sz * round( wdth / m$p$unt_sz, 0))]
+  m$o$bis[ , y:= n %/% ( m$p$unt_sz * round( wdth / m$p$unt_sz, 0)) * m$p$unt_sz ]
+
+  # Commentary
+  m$o$cmnts <- list(
+      3, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD",
+      4, "black", 85, -300, "1. Dollar dominates in 1992 \n- 80% of trades against USD",
+      5, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
+      6, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
+      7, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
+      8, m$p$clr$grn, 100, -300, "2. Growth through the 1990's \n in many pairs",
+      10, m$p$clr$rd, 120, -42, "3. European Monetary Union leads to\nlarge reductions in Euro pairs",
+      11, m$p$clr$rd, 120, -42, "3. European Monetary Union leads to\nlarge reductions in Euro pairs",
+      12, m$p$clr$rd, 120, -42, "3. European Monetary Union leads to\nlarge reductions in Euro pairs",
+      11, m$p$clr$grn, 115, -145, "3. ... but there is\ngrowth in several\nother pairs",
+      12, m$p$clr$grn, 115, -145, "3. ... but there is\ngrowth in several\nother pairs",
+      14, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      15, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      16, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      17, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      18, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      19, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      20, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      21, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      22, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      23, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      24, m$p$clr$grn, 90, -500, "4. Strong growth in many \n pairs in 2004 thru 2013",
+      25, m$p$clr$rd, 210, -35, "5. Many large pairs\ndecline in 2016",
+      26, m$p$clr$rd, 210, -35, "5. Many large pairs\ndecline in 2016",
+      27, m$p$clr$rd, 210, -35, "5. Many large pairs\ndecline in 2016",
+      26, m$p$clr$grn, 90, -470, "5. ... but Chinese Yuan \n(CNY) and many Asian\npairs continue to grow",
+      27, m$p$clr$grn, 90, -470, "5. ... but Chinese Yuan \n(CNY) and many Asian\npairs continue to grow",
+      28, m$p$clr$grn, 100, -500, "6. Return to growth in\n2019 for most but JPY",
+      29, m$p$clr$grn, 100, -500, "6. Return to growth in\n2019 for most but JPY",
+      30, m$p$clr$grn, 100, -500, "6. Return to growth in\n2019 for most but JPY",
+      30, "black", 92, -600, "7. Dollar still dominates in\n2019 as it did in 1992")
+
+
+  m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
+				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
+  m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
+
+  # Years
+  m$o$yrs <- m$o$bis[ !is.na( yr), .N, yr]
+
+  # Let's plot it!
+  saveGIF({ ani.options(interval = 2, nmax = 75)
+  #saveVideo({ ani.options(interval = 1, nmax = 75)
+
+  #for( j in m$o$bis[ yr== 2016  & yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
+  for( j in m$o$bis[ yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
+      print(
+	  ggplot( data= m$o$bis[ frm== j]) +
+	  # years -  background tiles
+	  geom_tile( data= function( x)
+	      x[ , .N, yr][ m$o$yrs, on= "yr"][
+		, .( yr, n= seq_along( yr),
+		    fll= fifelse( is.na( N), m$p$clr$lght_gry, "white"),
+		  clr= fifelse( is.na( N), m$p$clr$drk_gry, "white"))],
+	      mapping= aes( x= -36 + n * 22, y= 29, colour= I( clr), fill= I( fll)),
+	      width= 22, height= 20) +
+	  # years - text
+	  geom_text( data= function( x)
+	      x[ , .N, yr][ m$o$yrs, on= "yr"][
+		, .( yr, n= seq_along( yr),
+		    fll= fifelse( is.na( N), m$p$clr$lght_gry, "white"),
+		  clr= fifelse( is.na( N), m$p$clr$drk_gry, "black"))],
+	      mapping= aes( x= -36 + n * 22, y= 29, label= yr, colour= I( clr)),
+	      size= 5) +
+	  # logo
+	  annotation_custom( m$p$eyesonfx_lg, xmin= 198, xmax=260, ymin=22, ymax=40) +
+	  # vertical lines
+	  geom_segment( data= m$o$crncy_x,
+			mapping= aes( x= crncy_x - 4, xend= crncy_x - 4,
+				     y= 15, yend= -655),
+		       colour= m$p$clr$lght_gry, size= 0.5) +
+	  # horizontal lines
+	  geom_segment( data= m$o$crncy_y,
+			mapping= aes( x= -25, xend= +Inf,
+				     y= -crncy_y + m$p$unt_sz, yend= -crncy_y + m$p$unt_sz),
+		       colour= m$p$clr$lght_gry, size= 0.5) +
+	  # gain/loss label
+	  geom_label( data= function( x) x[ , .N, .( yr, i)][
+					   , .( lbl= ifelse(  i <= 1, "loss",
+						     ifelse( i <= 2, "gain", "final")),
+					       fll= ifelse(  i <= 1, m$p$clr$rd,
+						    ifelse( i <= 2, m$p$clr$grn, m$p$clr$drk_gry)))],
+		     mapping= aes( x= -13, y= 9, label= lbl, fill= I( fll)),
+		     fontface= "bold", colour= "white", size= 6, label.size= unit( 1, "mm"),
+		     label.padding= unit( 0.25, "lines"),
+		     hjust= 0.5, vjust= 0.5) +
+	  # currencies - across top
+	  geom_text( data= function( x)
+	      x[ , .( crncy_x= max( crncy_x)+ min( x), sgn= mean( sgn), i= max( i)), .( crncy2)][
+		 ,.( crncy_x, clr= fifelse( sgn== 0 | i>= 3, "black", fifelse( sgn< 0, m$p$clr$rd, m$p$clr$grn)),
+		    fnt= fifelse( mean(sgn)== 0 | i>= 3, "plain", "bold")),
+			       .( crncy2)],
+		mapping= aes( x= crncy_x, y= 1, label= crncy2, colour= I( clr), fontface= I( fnt)),
+		hjust= 0, vjust= 0, size= 6) +
+	  # currencies - down the side
+	  geom_text( data= function( x)
+	      x[ , .( n, mx= max( n), y= crncy_y + min( y) + m$p$unt_sz,
+		     clr= fifelse( sgn== 0 | i>= 3, "black", clr),
+		     fnt= fifelse( sgn== 0 | i>= 3, "plain", "bold")),
+		.( crncy1)][ n== mx],
+	      mapping= aes( y= -y, label= crncy1, colour= I( clr), fontface= I( fnt)),
+	      x= -25, hjust= 0, vjust= 0.5, size= 6) +
+	  # dots
+	  geom_point( mapping= aes( x= crncy_x + x, y= -crncy_y -y, colour= I( clr)),
+		     alpha= 1, size= 2.5) +
+	  # key dot
+	  annotate( geom= "point", x= 5, y= -659, size= 2.5, colour= m$p$clr$drk_gry) + 
+	  # key text
+	  annotate( geom= "text", x= 7, y= -663, hjust= 0, vjust= 0, size= 5,
+		   label= " = 5 billion USD") +
+	  # source
+	  annotate( geom= "text", x= 259, y= -663, hjust= 1, vjust= 0, size= 5,
+		   label= "Source: BIS FX surveys", colour= m$p$clr$drk_gry) +
+	  # commentary
+	  geom_label( data= m$o$cmnts[ frm== j],
+		 mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
+		 alpha= 1.0, colour= "white", size= 6, fontface= "bold") +
+	  scale_x_continuous( limits= c( -26, 260), expand= expansion(mult = 0, add = 0)) +
+	  scale_y_continuous( limits= c( -665, 40), expand= expansion(mult = 0, add = 0)) +
+  #      theme_grey()) 
+	theme_void()) 
+  #    geom_label( data= function( x) x[ n==0],
+  #	      mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
+  #	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
+  #	      hjust= 0, vjust= 0.5 ) +
+  }}
+  , movie.name = "Whats_what.gif", ani.width = 500, ani.height = 800) 
+  #, movie.name = "Whats_what.mp4", ani.width = 750, ani.height = 1200) 
+#+END_SRC
+
+#+hugo: more
+Having introduced the intention of this blog in my last post, I
+will start right a way with a description of what currencies are
+traded in the FX market using data from the Bank for International
+Settlement's triennial survey.
+
+As the animation highlights, since the survey began in 1989 until now,
+the US dollar (USD) is by far the most traded currency. 
+
+USD is most commonly traded against the EUR, the second most traded
+currency. The importance of the Eurozone currency can be seen in the
+impact of its go live in January 1999, between the 1998 and 2001 survey.
+
+After USD, referred to as the G7 currencies
+The market has grown every period, sa
+** What's in a Name?
+   SCHEDULED: <2020-02-29 Sat>
+:PROPERTIES:
+:EXPORT_FILE_NAME: whats_in_a_name
+:END:
+
+[[file:whats_in_a_name.gif]]
+
+#+BEGIN_SRC R
+  library(VennDiagram)
+
+  # Re-write function to allow labels to be printed for each of the 15 intersections
+  draw.quad.venn <- function (area1, area2, area3, area4, n12, n13, n14, n23, n24, 
+      n34, n123, n124, n134, n234, n1234, category = rep("", 4), labels = c(1:15), 
+      lwd = rep(2, 4), lty = rep("solid", 4), col = rep("black", 
+	  4), fill = NULL, alpha = rep(0.5, 4), label.col = rep("black", 
+	  15), cex = rep(1, 15), fontface = rep("plain", 15), fontfamily = rep("serif", 
+	  15), cat.pos = c(-15, 15, 0, 0), cat.dist = c(0.22, 0.22, 
+	  0.11, 0.11), cat.col = rep("black", 4), cat.cex = rep(1, 
+	  4), cat.fontface = rep("plain", 4), cat.fontfamily = rep("serif", 
+	  4), cat.just = rep(list(c(0.5, 0.5)), 4), rotation.degree = 0, 
+      rotation.centre = c(0.5, 0.5), ind = TRUE, cex.prop = NULL, 
+      print.mode = "raw", sigdigs = 3, direct.area = FALSE, area.vector = 0, 
+      ...) 
+  {
+      if (length(category) == 1) {
+	  cat <- rep(category, 4)
+      }
+      else if (length(category) != 4) {
+	  flog.error("Unexpected parameter length for 'category'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'category'")
+      }
+      if (length(lwd) == 1) {
+	  lwd <- rep(lwd, 4)
+      }
+      else if (length(lwd) != 4) {
+	  flog.error("Unexpected parameter length for 'lwd'", name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'lwd'")
+      }
+      if (length(lty) == 1) {
+	  lty <- rep(lty, 4)
+      }
+      else if (length(lty) != 4) {
+	  flog.error("Unexpected parameter length for 'lty'", name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'lty'")
+      }
+      if (length(col) == 1) {
+	  col <- rep(col, 4)
+      }
+      else if (length(col) != 4) {
+	  flog.error("Unexpected parameter length for 'col'", name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'col'")
+      }
+      if (length(label.col) == 1) {
+	  label.col <- rep(label.col, 15)
+      }
+      else if (length(label.col) != 15) {
+	  flog.error("Unexpected parameter length for 'label.col'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'label.col'")
+      }
+      if (length(cex) == 1) {
+	  cex <- rep(cex, 15)
+      }
+      else if (length(cex) != 15) {
+	  flog.error("Unexpected parameter length for 'cex'", name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'cex'")
+      }
+      if (length(fontface) == 1) {
+	  fontface <- rep(fontface, 15)
+      }
+      else if (length(fontface) != 15) {
+	  flog.error("Unexpected parameter length for 'fontface'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'fontface'")
+      }
+      if (length(fontfamily) == 1) {
+	  fontfamily <- rep(fontfamily, 15)
+      }
+      else if (length(fontfamily) != 15) {
+	  flog.error("Unexpected parameter length for 'fontfamily'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'fontfamily'")
+      }
+      if (length(fill) == 1) {
+	  fill <- rep(fill, 4)
+      }
+      else if (length(fill) != 4 & length(fill) != 0) {
+	  flog.error("Unexpected parameter length for 'fill'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'fill'")
+      }
+      if (length(alpha) == 1) {
+	  alpha <- rep(alpha, 4)
+      }
+      else if (length(alpha) != 4 & length(alpha) != 0) {
+	  flog.error("Unexpected parameter length for 'alpha'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'alpha'")
+      }
+      if (length(cat.pos) == 1) {
+	  cat.pos <- rep(cat.pos, 4)
+      }
+      else if (length(cat.pos) != 4) {
+	  flog.error("Unexpected parameter length for 'cat.pos'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'cat.pos'")
+      }
+      if (length(cat.dist) == 1) {
+	  cat.dist <- rep(cat.dist, 4)
+      }
+      else if (length(cat.dist) != 4) {
+	  flog.error("Unexpected parameter length for 'cat.dist'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'cat.dist'")
+      }
+      if (length(cat.col) == 1) {
+	  cat.col <- rep(cat.col, 4)
+      }
+      else if (length(cat.col) != 4) {
+	  flog.error("Unexpected parameter length for 'cat.col'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'cat.col'")
+      }
+      if (length(cat.cex) == 1) {
+	  cat.cex <- rep(cat.cex, 4)
+      }
+      else if (length(cat.cex) != 4) {
+	  flog.error("Unexpected parameter length for 'cat.cex'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'cat.cex'")
+      }
+      if (length(cat.fontface) == 1) {
+	  cat.fontface <- rep(cat.fontface, 4)
+      }
+      else if (length(cat.fontface) != 4) {
+	  flog.error("Unexpected parameter length for 'cat.fontface'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'cat.fontface'")
+      }
+      if (length(cat.fontfamily) == 1) {
+	  cat.fontfamily <- rep(cat.fontfamily, 4)
+      }
+      else if (length(cat.fontfamily) != 4) {
+	  flog.error("Unexpected parameter length for 'cat.fontfamily'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter length for 'cat.fontfamily'")
+      }
+      if (!(class(cat.just) == "list" & length(cat.just) == 4 & 
+	  length(cat.just[[1]]) == 2 & length(cat.just[[2]]) == 
+	  2 & length(cat.just[[3]]) == 2 & length(cat.just[[4]]) == 
+	  2)) {
+	  flog.error("Unexpected parameter format for 'cat.just'", 
+	      name = "VennDiagramLogger")
+	  stop("Unexpected parameter format for 'cat.just'")
+      }
+      cat.pos <- cat.pos + rotation.degree
+      if (direct.area) {
+	  areas <- area.vector
+	  for (i in 1:15) {
+	      assign(paste("a", i, sep = ""), area.vector[i])
+	  }
+      }
+      else {
+	  a6 <- n1234
+	  a12 <- n123 - a6
+	  a11 <- n124 - a6
+	  a5 <- n134 - a6
+	  a7 <- n234 - a6
+	  a15 <- n12 - a6 - a11 - a12
+	  a4 <- n13 - a6 - a5 - a12
+	  a10 <- n14 - a6 - a5 - a11
+	  a13 <- n23 - a6 - a7 - a12
+	  a8 <- n24 - a6 - a7 - a11
+	  a2 <- n34 - a6 - a5 - a7
+	  a9 <- area1 - a4 - a5 - a6 - a10 - a11 - a12 - a15
+	  a14 <- area2 - a6 - a7 - a8 - a11 - a12 - a13 - a15
+	  a1 <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13
+	  a3 <- area4 - a2 - a5 - a6 - a7 - a8 - a10 - a11
+	  areas <- c(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, 
+	      a12, a13, a14, a15)
+      }
+      areas.error <- c("a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13", 
+	  "a2  <- n34 - a6 - a5 - a7", "a3  <- area4 - a2 - a5 - a6 - a7 - a8 - a10 - a11", 
+	  "a4  <- n13 - a6 - a5 - a12", "a5  <- n134 - a6", "a6  <- n1234", 
+	  "a7  <- n234 - a6", "a8  <- n24 - a6 - a7 - a11", "a9  <- area1 - a4 - a5 - a6 - a10 - a11 - a12 - a15", 
+	  "a10 <- n14 - a6 - a5 - a11", "a11 <- n124 - a6", "a12 <- n123 - a6", 
+	  "a15 <- n12 - a6 - a11 - a12", "a13 <- n23 - a6 - a7 - a12", 
+	  "a14 <- area2 - a6 - a7 - a8 - a11 - a12 - a13 - a15")
+      for (i in 1:length(areas)) {
+	  if (areas[i] < 0) {
+	      flog.error(paste("Impossible:", areas.error[i], "produces negative area"), 
+		  name = "VennDiagramLogger")
+	      stop(paste("Impossible:", areas.error[i], "produces negative area"))
+	  }
+      }
+      if (length(cex.prop) > 0) {
+	  if (length(cex.prop) != 1) {
+	      flog.error("Value passed to cex.prop is not length 1", 
+		  name = "VennDiagramLogger")
+	      stop("Value passed to cex.prop is not length 1")
+	  }
+	  func = cex.prop
+	  if (class(cex.prop) != "function") {
+	      if (cex.prop == "lin") {
+		  func = function(x) x
+	      }
+	      else if (cex.prop == "log10") {
+		  func = log10
+	      }
+	      else flog.error(paste0("Unknown value passed to cex.prop: ", 
+		  cex.prop), name = "VennDiagramLogger")
+	      stop(paste0("Unknown value passed to cex.prop: ", 
+		  cex.prop))
+	  }
+	  maxArea = max(areas)
+	  for (i in 1:length(areas)) {
+	      cex[i] = cex[i] * func(areas[i])/func(maxArea)
+	      if (cex[i] <= 0) 
+		  stop(paste0("Error in rescaling of area labels: the label of area ", 
+		    i, " is less than or equal to zero"))
+	  }
+      }
+      grob.list <- gList()
+      ellipse.positions <- matrix(nrow = 4, ncol = 7)
+      colnames(ellipse.positions) <- c("x", "y", "a", "b", "rotation", 
+	  "fill.mapping", "line.mapping")
+      ellipse.positions[1, ] <- c(0.65, 0.47, 0.35, 0.2, 45, 2, 
+	  2)
+      ellipse.positions[2, ] <- c(0.35, 0.47, 0.35, 0.2, 135, 1, 
+	  1)
+      ellipse.positions[3, ] <- c(0.5, 0.57, 0.33, 0.15, 45, 4, 
+	  4)
+      ellipse.positions[4, ] <- c(0.5, 0.57, 0.35, 0.15, 135, 3, 
+	  3)
+      for (i in 1:4) {
+	  grob.list <- gList(grob.list, VennDiagram::ellipse(x = ellipse.positions[i, 
+	      "x"], y = ellipse.positions[i, "y"], a = ellipse.positions[i, 
+	      "a"], b = ellipse.positions[i, "b"], rotation = ellipse.positions[i, 
+	      "rotation"], gp = gpar(lty = 0, fill = fill[ellipse.positions[i, 
+	      "fill.mapping"]], alpha = alpha[ellipse.positions[i, 
+	      "fill.mapping"]])))
+      }
+      for (i in 1:4) {
+	  grob.list <- gList(grob.list, ellipse(x = ellipse.positions[i, 
+	      "x"], y = ellipse.positions[i, "y"], a = ellipse.positions[i, 
+	      "a"], b = ellipse.positions[i, "b"], rotation = ellipse.positions[i, 
+	      "rotation"], gp = gpar(lwd = lwd[ellipse.positions[i, 
+	      "line.mapping"]], lty = lty[ellipse.positions[i, 
+	      "line.mapping"]], col = col[ellipse.positions[i, 
+	      "line.mapping"]], fill = "transparent")))
+      }
+      label.matrix <- matrix(nrow = 15, ncol = 3)
+      colnames(label.matrix) <- c("label", "x", "y")
+      label.matrix[1, ] <- c(a1, 0.35, 0.77)
+      label.matrix[2, ] <- c(a2, 0.5, 0.69)
+      label.matrix[3, ] <- c(a3, 0.65, 0.77)
+      label.matrix[4, ] <- c(a4, 0.31, 0.67)
+      label.matrix[5, ] <- c(a5, 0.4, 0.58)
+      label.matrix[6, ] <- c(a6, 0.5, 0.47)
+      label.matrix[7, ] <- c(a7, 0.6, 0.58)
+      label.matrix[8, ] <- c(a8, 0.69, 0.67)
+      label.matrix[9, ] <- c(a9, 0.18, 0.58)
+      label.matrix[10, ] <- c(a10, 0.32, 0.42)
+      label.matrix[11, ] <- c(a11, 0.425, 0.38)
+      label.matrix[12, ] <- c(a12, 0.575, 0.38)
+      label.matrix[13, ] <- c(a13, 0.68, 0.42)
+      label.matrix[14, ] <- c(a14, 0.82, 0.58)
+      label.matrix[15, ] <- c(a15, 0.5, 0.28)
+      processedLabels <- rep("", length(label.matrix[, "label"]))
+      if (print.mode[1] == "percent") {
+	  processedLabels <- paste(signif(label.matrix[, "label"]/sum(label.matrix[, 
+	      "label"]) * 100, digits = sigdigs), "%", sep = "")
+	  if (isTRUE(print.mode[2] == "raw")) {
+	      processedLabels <- paste(processedLabels, "\n(", 
+		  label.matrix[, "label"], ")", sep = "")
+	  }
+      }
+      if (print.mode[1] == "raw") {
+	  processedLabels <- label.matrix[, "label"]
+	  if (isTRUE(print.mode[2] == "percent")) {
+	      processedLabels <- paste(processedLabels, "\n(", 
+		  paste(signif(label.matrix[, "label"]/sum(label.matrix[, 
+		    "label"]) * 100, digits = sigdigs), "%)", sep = ""), 
+		  sep = "")
+	  }
+      }
+      for (i in 1:nrow(label.matrix)) {
+	  grob.list <- gList(grob.list, textGrob(label = labels[i], 
+	      x = label.matrix[i, "x"], y = label.matrix[i, "y"], 
+	      gp = gpar(col = label.col[i], cex = cex[i], fontface = fontface[i], 
+		  fontfamily = fontfamily[i])))
+      }
+      cat.pos.x <- c(0.18, 0.82, 0.35, 0.65)
+      cat.pos.y <- c(0.58, 0.58, 0.77, 0.77)
+      for (i in 1:4) {
+	  this.cat.pos <- find.cat.pos(x = cat.pos.x[i], y = cat.pos.y[i], 
+	      pos = cat.pos[i], dist = cat.dist[i])
+	  grob.list <- gList(grob.list, textGrob(label = category[i], 
+	      x = this.cat.pos$x, y = this.cat.pos$y, just = cat.just[[i]], 
+	      gp = gpar(col = cat.col[i], cex = cat.cex[i], fontface = cat.fontface[i], 
+		  fontfamily = cat.fontfamily[i])))
+      }
+      grob.list <- VennDiagram::adjust.venn(VennDiagram::rotate.venn.degrees(grob.list, 
+	  rotation.degree, rotation.centre[1], rotation.centre[2]), 
+	  ...)
+      if (ind) {
+	  grid.draw(grob.list)
+      }
+      return(grob.list)
+  }
+
+
+
+  m$p$lbls <- c( "Nerd", "R Core\nTeam", "Hacker", "Stats\nProfessor", "Good\nConsultant",
+		"EYES on FX", "Quant\nTrader", "eFX IT\nDeveloper", "Hot Air", "Computing\nProfessor",
+		"FX IT\nHead", "Currency\nPM", "Options\nQuant", "FX\nTrader", "FX Sales")
+  m$p$lbls
+  m$p$ctgrs <- matrix( c( rep( c( 0, 1.0, 0, 0), 2),
+			 rep( c( 1.0, 1.0, 0, 0), 3),
+			 rep( c( 1.0, 1.0, 1.0, 0), 5),
+			 rep( c( 1.0, 1.0, 1.0, 1.0), 9)),
+		      ncol= 4, byrow= TRUE)
+
+  m$p$sqnc <- c( 14, 14, 9, 9, 15, 1, 1, 13, 4, 12, 3, 3, 8, 11, 10, 5, 2, 7, 6) 
+
+  # Use standard font
+  showtext_auto()
+  saveGIF({ #ani.options(interval = 2, nmax = 75)
+
+  #for( i in length( m$p$sqnc):( length( m$p$sqnc)+ 0))
+      for( i in 1:( length( m$p$sqnc)+ 0)) {
+	  grid.newpage(recording = TRUE)
+	  grid.rect( gp= gpar( fill= m$p$clr$bckgrnd_gry, col= NA))
+	  grid.raster( image= m$p$plt$eyesonfx_lg,
+		      x= 1- 0.0015, y= 1- 0.0015, vjust= 1, hjust= 1,
+		    height= 0.035)
+	  grid.text( label= "EYES on FX combines four skill sets",
+		    name= "title", x = unit(0.01, "npc"), y = unit(1- 0.01, "npc"),
+		   hjust = 0, vjust = 1, rot = 0,
+		  check.overlap = FALSE, default.units = "npc",
+		  gp = gpar( fontsize= 18, fontface= "bold"), draw = TRUE, vp = NULL)
+	  grid.text( label= "Data Science skill sets venn diagram in an FX context",
+		    x = unit(0.01, "npc"), y = unit(1- 0.04, "npc"),
+		   hjust = 0, vjust = 1, rot = 0,
+		  check.overlap = FALSE, default.units = "npc",
+		  gp = gpar( fontsize= 14), draw = TRUE, vp = NULL)
+	  grid.text( name= "footer", label= "Based on Stephan Kolassa's diagram following Drew Conway", x = unit(1- 0.005, "npc"), y = unit( 0.005, "npc"),
+		   hjust = 1, vjust = 0, rot = 0,
+		  check.overlap = FALSE, default.units = "npc",
+		  gp = gpar( fontsize= 14, col= m$p$clr$gry), draw = TRUE, vp = NULL)
+	  if( i== 1) grid.refresh()
+	  tmp <- m$p$lbls
+	  if( i <= length( m$p$sqnc)){
+	      tmp[ m$p$sqnc[(1+i):length( m$p$sqnc)]] <- ""}
+	  venn.plot <- draw.quad.venn(
+	      alpha= m$p$ctgrs[ i,]* 0.5, 
+	      labels= tmp, fontface= "bold",
+	      label.col= c( "black", "black", "black", "white", "black",
+			   "black","black", "black","white", "Black",
+			   "white", "white", "black", "black", "white"),
+	      area1 = 72, area2 = 86, area3 = 50, area4 = 52,
+	      n12 = 44, n13 = 27, n14 = 32, n23 = 38, n24 = 32, n34 = 20,
+	      n123 = 18, n124 = 17, n134 = 11, n234 = 13, n1234 = 6,
+	      category = c("(2)\n Comms", "(1)\nFX", "(3)\nMaths / Stats", "(4)\nData / IT"),
+	      fill = c("black", m$p$clr$grn, m$p$clr$rd, "grey"), lwd= 0,
+	      lty = c("solid", "solid", "solid", "solid"),
+	      fontfamily= "Merriweather",
+	      cex = 1.3,
+	      cat.cex = m$p$ctgrs[ i, ]* 2,
+	      cat.col = c("black", m$p$clr$grn, m$p$clr$rd, m$p$clr$drk_gry),
+	      cat.fontfamily= "Quantico",
+	      ind= FALSE)
+	  grid.draw( venn.plot)
+      }
+      grid.roundrect( x= 0.5, y= 0.43, r= unit( 0.2, "snpc"), width= 0.11, height= 0.08,
+		     gp= gpar( fill= "white", col= 0))
+      grid.raster( image= readPNG( "/Users/rfranolic/eyesonfx/assets/images/square_logo.png"),
+		  x= 0.5, y= 0.43, height= 0.10)
+      grid.refresh()
+      grid.refresh()
+      grid.refresh()
+      grid.refresh()
+  }
+  , movie.name = "Whats_in_a_name.gif", ani.width = 500* 1.25, ani.height = 500* 1.25) 
+
+
+  #    grid.newpage(recording = TRUE)
+  #    venn.plot <- draw.quad.venn(
+  #	alpha= 0.3,
+  #	labels= tmp,
+  #	area1 = 72, area2 = 86, area3 = 50, area4 = 52,
+  #        n12 = 44, n13 = 27, n14 = 32, n23 = 38, n24 = 32, n34 = 20,
+  #        n123 = 18, n124 = 17, n134 = 11, n234 = 13, n1234 = 6,
+  #    category = c("Comms", "FX", "Maths / Stats", "Data / IT"),
+  #    fill = c("black", m$p$clr$grn, m$p$clr$rd, "grey"), lwd= 0,
+  #    lty = c("solid", "solid", "solid", "solid"),
+  #    fontfamily= "Merriweather",
+  #    cex = 1,
+  #    cat.cex =  1.5,
+  #    cat.col = c("black", m$p$clr$grn, m$p$clr$rd, "dark grey"),
+  #    cat.fontfamily= "Quantico")
+  #
+  #  m$f$plt( plt= grid.draw( venn.plot), ttl= "Top Liquidity Providers 2010-19",
+  #	    sbttl= "Euromoney FX Survey rankings and market shares each year",
+  #	    src= "Source: Euromoney")
+
+
+  # m$f$sv_svg( "~/eyesonfx/content/whats_in_a_name.svg")
+#+END_SRC
+
+This is my very first blog post! In it I will explain how I came up with
+the name, Eyes on FX, and my intentions for this website.
+#+hugo: more
+According to the Bank for International Settlements (BIS), USD 6.5
+trillion of Foregin Exchange (FX) was conducted each day on average in
+April 2019. As Blastland and Dilnot advise in their excellent book
+'The Tiger that Isn't', we should always consider a comparison, to
+answer the simple question: 'is that a big number?'.
+
+According to the World Bank, 2018 global GDP, the value of all the
+good and services produced throughout the world that year, was 85.91
+trillion, or around 0.33 billion per working day. Very roughly then,
+in terms of USD volumes, the FX market is twenty times larger than the
+global economy. To repeat, this is a very rough calculation, but
+there's no refinement, nor reasonable adjustment, that can change the
+conclusion: the FX market, is not just big, it's monstrous!
+
+Apart from it's sheer size, the FX market is critical to the global
+economy, trade in goods and services cannot. It's not just it's sheer
+size that makes the FX market so important to the global
+
+Despite it's importance the FX market remains relatively opaque
+compared to other financial market. 
+
+*** Why FX?
+**** By many measures the Largest market - of any kind
+**** Relevant globally, nationally and individually
+**** Its what I know
+*** Why /Eyes on/ FX?
+**** Not transparent compared to other markets
+FX: over 6,000, currency: over 10,000 results, stocks: over 50,000 results, bionds: over 30,000
+Google scholar: Stock market: About 3,560,000 results, Bond market: About 2,680,000 results,
+Currency markets: 2,440,000. Commodity Markets: 1,900,000.
+
+Google stock market data: About 2,260,000,000 results
+FX market data: 248,000,000 
+Currency market data: 931,000,000
+Bond market data: 402,000,000
+Treasury market data: 153,000,000
+Commodity: 140,000,000  
+**** In a literal sense
+***** Importance of visualisation
+A picture paints a thousand words
+- Exploratory visualization
+- Explanatory visualization
+**** In a metaphorical sense
+Improving understanding
+
+*** Intention for the website
+In three ways: 1) posting blogs 2) providing an on-line reference 3)
+providing external references for deeper study and understanding.
+**** Write about the FX market
+**** A brief and accessible online reference to the FX market
+Key questions about the FX market:
+- what is FX? 
+- who trades FX?
+- where is FX traded?
+- when is FX traded?
+- why is FX traded?
+- how is FX traded?
+**** Explore challenges 
+**** Provide more details references
+The online reference is based on my own experience of the markat and also questions rely on three key sources: 
+- data
+- books
+- white/academic papers
+*** Principles
+** TODO The Colour of Money                                         :DataViz:
+:PROPERTIES:
+:EXPORT_FILE_NAME: any_colour_you_like
+:END:
+#+BEGIN_SRC R
+  library(devtools)
+  install_github("andreacirilloac/paletter")
+  library( paletter)
+
+  m$i$clrs <- create_palette( image_path= "~/eyesonfx/assets/images/dollarbill.jpg", number_of_colors= 20,
+			     type_of_variable= "categorical")
+
+  m$i$clrs <- create_palette( image_path= "~/eyesonfx/assets/images/euro-bill.jpg", number_of_colors= 20,
+			     type_of_variable= "categorical")
+
+  # Green
+  col2rgb( "#374732")
+  col2rgb( "#439C63")
+  # Red
+  col2rgb( "#792222")
+  col2rgb( "#EA5D79")
+#+END_SRC
+
+* FX Market reference
+:PROPERTIES:
+:EXPORT_HUGO_SECTION: doc/FX_reference
+:END:
+** Overview
+:PROPERTIES:
+:EXPORT_FILE_NAME: _index
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+#+begin_src yaml :front_matter_extra t
+linktitle: Overview
+toc: true
+type: docs
+menu:
+  FX_reference:
+    name: Overview 
+    weight: 1
+#+end_src
+An FX trade can be simplified into different elements that form the
+answers to the six simple quesions shown in the table below.
+
+file:/img/gsm_fx.svg
+
+| Question | Schematic               | Areas covered                                                |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[What?]]    | file:/img/gsm_what.svg  | What is traded: Currencies and instruments                   |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[Who?]]     | file:/img/gsm_who.svg   | Who trades: buy-side and sell-side counterparts              |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[When?]]    | file:/img/gsm_when.svg  | When is FX traded: Dates, Times, Timing                      |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[Where?]]   | file:/img/gsm_where.svg | Where it's traded: Trading centres and Venues                |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[Why?]]     | file:/img/gsm_why.svg   | Why it's traded: the reasons counterparts come to the market |
+|----------+-------------------------+--------------------------------------------------------------|
+| [[How?]]     | file:/img/gsm_how.svg   | How eXchange happens: the mechanics of trading               |
+|----------+-------------------------+--------------------------------------------------------------|
+
+
+Click on the part of the schematic, the question in the table, or in
+the menu for answers to these questions.
+
+
+** What?
+:PROPERTIES:
+:EXPORT_FILE_NAME: what
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+
+#+begin_src yaml :front_matter_extra t
+linktitle: What?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 10
+#+end_src
+
+What is FX
+*** Currencies
+*** Instruments
+
+** Who?
+:PROPERTIES:
+:EXPORT_FILE_NAME: who
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+
+#+begin_src yaml :front_matter_extra t
+linktitle: Who?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 20
+#+end_src
+
+| Banks          | 40% |
+|----------------+-----|
+| Asset managers | 20% |
+|----------------+-----|
+| Corporates     |  5% |
+|----------------+-----|
+| Central Banks  | 10% |
+
+
+*** Banks
+*** Asset Managers
+*** Coporations
+*** Central Banks
+** Where?
+:PROPERTIES:
+:EXPORT_FILE_NAME: where
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+
+#+begin_src yaml :front_matter_extra t
+linktitle: Where?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 30
+#+end_src
+
+** When?
+:PROPERTIES:
+:EXPORT_FILE_NAME: when
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+
+#+begin_src yaml :front_matter_extra t
+linktitle: When?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions 
+    weight: 40
+#+end_src
+
+** Why?
+:PROPERTIES:
+:EXPORT_FILE_NAME: why
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+
+#+begin_src yaml :front_matter_extra t
+linktitle: Why?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 50
+#+end_src
+*** To make a profit as a Market maker
+*** To speculate
+*** To fund foreign payments
+*** Hedge currency exposure
+** How?
+:PROPERTIES:
+:EXPORT_FILE_NAME: how
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+#+begin_src yaml :front_matter_extra t
+linktitle: How?
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: A. Questions
+    weight: 60
+#+end_src
+*** Decision
+*** Execution
+** Glossary
+:PROPERTIES:
+:EXPORT_FILE_NAME: Glossary
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+#+begin_src yaml :front_matter_extra t
+toc: true
+type: docs
+menu:
+  FX_reference:
+    parent: B. Terminology
+    name: Glossary
+    weight: 60
+#+end_src
+
+A glossary of terms used in FX
+
+| Term      | Synonyms                           | Meaning                                                                                                                                                                                 | Exernal Reference |
+|-----------+------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------|
+| Buy side  | Liquidity consumers                |                                                                                                                                                                                         |                   |
+| Sell side | Liquidity providers, market makers | Banks (typically) that make a market in a particular currency  pair and instrument i.e. they will quote a price at which they will buy (the bid) or sell (the offer) a particular pair. |                   |
+|           |                                    |                                                                                                                                                                                         |                   |
+** Data
+:PROPERTIES:
+:EXPORT_FILE_NAME: Data
+:EXPORT_HUGO_FRONT_MATTER_FORMAT: yaml
+:END:
+#+begin_src yaml :front_matter_extra t
+toc: true
+type: docs
+menu:
+  FX_reference:
+    name: Data
+    parent: C. Data Sources
+    weight: 95
+#+end_src
+
+A  of terms used in FX
+
+| Data | Type | Source | Description |
+|------+------+--------+-------------|
+|      |      |        |             |
+
+* Data
+* References
+** Books
+*** Foreign Exchange
+*** Data Communication
+*** Data Management
+*** Date Analysis
+** Papers
+* Old - to delete
+** Introduction
+Get Bank of England Joint Standing Committee (JSC) survey data.
+** Start up
+** Create m object and logging function
+#+BEGIN_SRC R 
+  source( file= "/Dnk/R_setup.R")
+
+  m$h$nm <- "BoE_JSC"
+  m$h$vrsn <- 1
+        
+  lg_strt( m$h$nm, m$h$vrsn)
+#+END_SRC
+
+#+RESULTS:
+: tm: 16:35:54  stp: start  expct: NA  actl: NA  err: FALSE  chk: NA
+
+** Create parent directory
+#+BEGIN_SRC R
+  lg_add( "create_parent_dir")
+
+  m$p$jsc$dr$prnt <- "/Dnk/Srcs/BoE/JSC"
+  if( !dir.exists( m$p$jsc$dr$prnt))
+      dir.create( m$p$jsc$dr$prnt)
+
+  lg_updt( chk= paste( "dir.exists('", m$p$jsc$dr$prnt, "') * 1", sep= ""), expct1= 1)
+#+END_SRC
+
+#+RESULTS:
+
+** Download data
+** Create extract directory 
+#+BEGIN_SRC R
+  lg_add( "create_extrct_dir")
+
+  m$p$jsc$dr$extrct <- "/Dnk/Srcs/BoE/JSC/Extrct/"
+  if( !dir.exists( m$p$jsck$dr$extrct))
+      dir.create( m$p$jsc$dr$extrct)
+
+  lg_updt( chk= paste( "dir.exists('", m$p$jsc$dr$extrct, "') * 1", sep= ""), expct1= 1)
+#+END_SRC
+
+#+RESULTS:
+
+** Download and save spreadsheets
+#+BEGIN_SRC R outfile:png
+  lg_add( "download_page")
+
+  m$p$url <- "https://www.bankofengland.co.uk/-/media/boe/files/markets/foreign-exchange-joint-standing-committee/semi-annual-fx-turnover-survey-results/"
+
+  m$p$mnths <- c( 'april', 'october')
+  m$p$yrs <- 2015:2019
+
+  m$p$fls <- paste0( "data-tables-", outer( m$p$mnths, m$p$yrs, FUN= paste, sep= '-'))
+  m$p$fls <- paste0( fifelse( str_sub( m$p$fls, start= -4) > 2018,
+                             paste0( str_sub( m$p$fls, start= -4), '/'), ''),
+                    m$p$fls)
+
+  # Download spreadsheets
+  lapply( X= m$p$fls, FUN= function( x)
+      download.file( paste0( m$p$url, x, ".xlsx?la=en"),
+                    destfile= paste0( m$p$jsc$dr$extrct, "JSC-",
+                                     gsub( '^[0-9]*/', '', x), ".xlsx")))
+#+END_SRC
+** Convert to tabular form
+** Read in spreadsheets
+Read in from file, converting from excel to data.table
+
+#+BEGIN_SRC R
+  lg_add( "convert_to_table")
+
+  library( tidyxl)
+  m$i$srvy <- rbindlist( lapply( X= list.files( m$p$jsc$dr$extrct),
+                     FUN= function( x)
+                         as.data.table( xlsx_cells( paste0( m$p$jsc$dr$extrct, x)))),
+                     idcol= 'bk', use.names= TRUE)
+  m$i$srvy[ , bk:= list.files( m$p$jsc$dr$extrct)[ bk]]
+#+END_SRC
+
+#+RESULTS:
+
+** Convert to regular data table
+#+BEGIN_SRC R
+  m$x$srvy <- copy( m$i$srvy)
+
+  # Extract date from workbook name
+  m$x$srvy[ , dt:= as.Date( as.yearmon( str_sub( bk, 17, -6), "%B-%Y"))]
+  # Work out row headings
+  # Title - first or second row of first column of all sheets, except 1G and 2G
+  m$x$srvy[ row <= 2 & col== 1 & grepl( '^[1-3][a-f]', character), ttl:= character]
+  m$x$srvy[ , ttl:= na.locf( ttl, na.rm= FALSE), .( bk, sheet)]
+
+  # Extract instrument from title
+  m$x$srvy[ !sheet %in% c( "1.G", "2.G"), instrmnt:=  gsub( ",.*$", "", gsub( "^[1-9][a-z]. ", "", ttl))]
+  # or get it from row headings in 1.G and 2.G
+  m$x$srvy[ sheet %in% c( "1.G", "2.G") & col== 1 & row %in% 5:18,
+           instrmnt:= str_to_upper( str_trim( character))]
+  m$x$srvy[ , instrmnt:= na.locf( instrmnt, na.rm= FALSE), .( bk, sheet)]
+  m$x$srvy[ instrmnt== "FOREIGN EXCHANGE OPTIONS", instrmnt:= "FX OPTIONS"]
+
+  # Extract metric from title ( and from rows starting Number of trades
+  m$x$srvy[ , mtrc1:= fifelse( grepl( 'Average Daily Volume', ttl), 'Avg', 'Ttl')]
+  m$x$srvy[ character== "Number of trades", mtrc2:= "nmbr"]
+  m$x$srvy[ , mtrc2 := na.locf( mtrc2, na.rm= FALSE), .( bk, sheet, row)]
+  m$x$srvy[ is.na( mtrc2), mtrc2 := "vl"]
+
+  # Counterparty types
+  m$x$srvy[ sheet %in% c( "1.G", "2.G") & col== 1 & row > 18,
+           cntrprt1:= str_to_upper( str_trim( character))]
+  m$x$srvy[ , cntrprt1:= na.locf( cntrprt1, na.rm= FALSE), .( bk, sheet)]
+
+
+  # Currency 1 - first column
+  m$x$srvy[ row > 2 & col== 1 & grepl( "^[1-3].[A-F]", sheet) & !grepl( '^     ', character),
+           crnc1:= character]
+
+  m$x$srvy[ , crnc1:= na.locf( crnc1, na.rm= FALSE), .( bk, sheet)]
+
+  # Currency 2 - first column indented and in all sheets except 1.G and 2.G
+  m$x$srvy[ col== 1 & grepl( '^     ', character) & !grepl( '^[1-2].G', sheet),
+           crnc2:= character]
+
+  m$x$srvy[ , crnc2:= na.locf( crnc2, na.rm= FALSE), .( bk, sheet)]
+
+  # Work out column headings - re-order by columns first
+  m$x$srvy <- m$x$srvy[ order( bk, sheet, col, row)]
+  # Counterparty - labels split over 2 rows
+  m$x$srvy[ col> 1 & grepl( '^[1-2].[A-F]', sheet) & !is.na( character) & character != '',
+           cntrprt2:= str_to_upper( str_trim( character))]
+
+  m$x$srvy[ , cntrprt2:= fifelse( !is.na( cntrprt2) & !is.na( shift( cntrprt2)),
+                                paste( shift( cntrprt2), cntrprt2),
+                                cntrprt2)] 
+
+  m$x$srvy[ , cntrprt2:= na.locf( cntrprt2, na.rm= FALSE), .( bk, sheet)]
+
+  # Combine the two sources of counterparty
+  m$x$srvy[ !is.na( cntrprt1) | !is.na( cntrprt2),
+           cntrprt:= fifelse( !is.na( cntrprt1), cntrprt1, cntrprt2)]
+  # Maturity
+  m$x$srvy[ col> 1 & grepl( '^3.[A-D]', sheet) & !is.na( character) & character != '',
+           mtrt:= character]
+  m$x$srvy[ , mtrt:= na.locf( mtrt, na.rm= FALSE), .( bk, sheet)]
+
+  # Execution method - labels split over 2 rows
+  m$x$srvy[ col> 1 & grepl( '^[1-2].[G]', sheet) & !is.na( character) & character != '',
+           mthd:= character]
+  m$x$srvy[ !is.na( mthd), mthd:= paste( shift( mthd), mthd)] 
+  m$x$srvy[ , mthd:= na.locf( mthd, na.rm= FALSE), .( bk, sheet)]
+
+  m$o$srvy <- m$x$srvy[ !is.na( numeric) & mtrc2== 'vl' & mtrc1== 'Avg' &
+                        instrmnt != 'TOTAL' & cntrprt != 'TOTAL' &
+                        !grepl( "O/W", cntrprt) &crnc1 != 'Totala',
+                       .( dt, sheet, instrmnt, crnc1, crnc2, cntrprt, mtrt, mthd,numeric)]
+
+
+  t <- m$o$srvy[ dt %in% as.Date( c( '2018-10-01', '2019-10-01')) & instrmnt != 'TOTAL'][
+          order( c( instrmnt, crnc1, crnc2, cntrprt))][
+            , .( chng= ( numeric- shift( numeric))/1e3), .( instrmnt, crnc1, crnc2, cntrprt)][
+          order( - abs( chng))][1:20]
+
+  t <- m$o$srvy[ dt %in% as.Date( c( '2018-10-01', '2019-10-01')) & instrmnt != 'TOTAL' &
+                 crnc2 %in% t[ , .N, crnc2][ , crnc2] &
+                 instrmnt %in% t[ , .N, instrmnt][ , instrmnt] &
+                cntrprt %in% t[ , .N, cntrprt][ , cntrprt]][
+          order( c( instrmnt, crnc1, crnc2, cntrprt))][
+            , .( chng= ( numeric- shift( numeric))/1e3), .( instrmnt, crnc1, crnc2, cntrprt)][
+          order( - abs( chng))]
+
+  t[ , i:= 1]
+  m$i$nmbrs <- data.table( i= 1, n= 1:200)
+  t <- merge( t, m$i$nmbrs, allow.cartesian= TRUE)[ abs( chng) >= 5* n]
+  t[ , n:= n * sign( chng)]
+#+END_SRC
+
+** Plot
+#+BEGIN_SRC R :file "chart.png" :results output graphics file :exports results
+library ( ggplot2)
+  ggplot( data= t[ !is.na( chng)]) +
+      geom_point( mapping= aes( y= crnc2, x= n, colour= factor( sign( n)))) +
+      facet_grid( cntrprt ~ instrmnt, scales= "free", space= "free") 
+#+END_SRC
+
+#+RESULTS:
+[[file:chart.png]]
+
+
+
+
+
+* Ideas
+** Neural Networks with Asymptotics Control - Alexandre Antonov
+Asymptotic Splines and Constrained Radial Layers
+Automatic differentiation = Back propagation
+Doesn't extrapolate well - Extreme Value Theory
+Kolmogorov Arnold snake algorithm to conver to lower dimension - reminds me of SOM

@@ -6,7 +6,7 @@
 * Setup
 ** Standard
 #+BEGIN_SRC R :eval yes
-  source( "/Dnk/R_setup.R")
+  source( "~/Dnk/R_setup.R")
 #+END_SRC
 
 #+RESULTS:
@@ -424,10 +424,10 @@ expression to indicate that an FX trade may involve three locations:
 the location of the two counterparts, and, most importantly, where
 they come together to execute the trade, the trading venue. 
 
-The majority of FX trades are
-executed electronically on different trading 'venues'. In this
-article, using monthly data published by the venues, I explore the
-distribution of activity across them and how it has evolved over time.
+The majority of FX trades are executed electronically on different
+trading 'venues'. In this article, using monthly data published by the
+venues, I explore the distribution of activity across them and how it
+has evolved over time.
 #+hugo: more
 
 *** Read in and summarise data                                     :noexport:
@@ -544,10 +544,10 @@ distribution of activity across them and how it has evolved over time.
       theme( plot.background= element_rect( fill= "grey95", colour= NA),
 	    panel.background= element_rect( fill= "grey95", colour= NA), legend.position= "none")
 
-  m$f$plt( plt= m$o$plt1, ttl= "Volumes by venue",
+  m$f$plt( plt= m$o$plt1, ttl= "Volumes by Venue",
 	  sbttl= paste0( "Monthly Average daily spot volume ($ billions) to ",
 			strftime( m$o$vns[ , max( mnth)], "%B %Y")),
-	  src= "Source: Venues' websites")
+	  src= "Source: CLS and Venues' respective websites")
 
   grid.force()
   m$p$ln1 <- lapply( grep( "GRID.polyline", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
@@ -610,7 +610,7 @@ distribution of activity across them and how it has evolved over time.
 	  sbttl= paste0( "Monthly Average Daily Spot Volume ($ Billions) to ",
 			strftime( m$o$vns[ , max( mnth)], "%b %Y")),
   #	sbttl= "Average daily spot volume each month to Febraury 2020",
-	  src= "Source: Venues' websites")
+	  src= "Source: Venues' and CLS's respective websites")
 
   #grid.text( name= "cmnt1", label= "Volumes pick up in February", x= 2/3, y = .45,
   #		 hjust = 1, vjust = 0.5, check.overlap = FALSE, default.units = "npc",
@@ -634,7 +634,30 @@ distribution of activity across them and how it has evolved over time.
 
   # Dummy animation to coordinate timing of other animations
   grid.animate( m$p$icn$name, visibility= c( "visible", "visible"),
-	       begin= "0;anmtn_dmy_id.end", duration= 17)
+	       begin= "0;anmtn_dmy_id.end", duration= 18)
+
+  # Animate line between adv and adv share
+  grid.animate( m$p$ln2[[1]]$name,
+		   y= animUnit( x= unit( c( m$p$ln2[[1]]$y, m$p$ln1[[1]]$y), unit= "native"),
+			       id= rep( m$p$ln1[[1]]$id, 2),
+			       timeid= rep( 1:2, each= length( m$p$ln1[[1]]$id))),
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
+
+  grid.animate( m$p$ln2[[2]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$txt2[[2]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$txt2[[3]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  # Hide comments visible/invisible
+  grid.animate( m$p$lbl2[[1]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$sgmnt2[[1]]$name, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$lbl2[[2]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
+  grid.animate( m$p$lbl2[[3]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 1)
 
   #grid.animate( m$p$ln2[[1]]$name,
   #             y= animUnit( x= rep( m$p$ln2[[1]]$y,2),
@@ -648,26 +671,26 @@ distribution of activity across them and how it has evolved over time.
 			       id= rep( m$p$ln2[[1]]$id, 1+ length( m$p$ln2[[2]]$gp$col)),
 			       timeid=  rep( 1:( length( m$p$ln2[[2]]$gp$col)+ 1),
 					   each= length( m$p$ln2[[1]]$id))),
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 8)
 
   grid.animate( m$p$ln2[[2]]$name, #"GRID.polyline", grep= TRUE, global= TRUE,    #m$p$ln2[[1]]$name,
 		   y= animUnit( x= rep( m$p$ln2[[1]]$y, 1+ length( m$p$ln2[[2]]$gp$col)),
 			       id= rep( m$p$ln2[[1]]$id, 1+ length( m$p$ln2[[2]]$gp$col)),
 			       timeid=  rep( 1:( length( m$p$ln2[[2]]$gp$col)+ 1),
 					   each= length( m$p$ln2[[1]]$id))),
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 8)
 
   # Ensure y values for grey line labels are set adv for lines as well
   grid.animate( m$p$txt2[[1]]$name, #grep= TRUE, global= TRUE, #m$p$txt2[[1]]$name,
 	       y= animUnit( rep( m$p$txt2[[1]]$y, 1+ length( m$p$ln2[[2]]$gp$col)),
 						id= rep(1:length( m$p$txt2[[1]]$y), 1+ length( m$p$ln2[[2]]$gp$col))),
 					   interpolate= "discrete",
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 8)
   grid.animate( m$p$txt2[[2]]$name, #grep= TRUE, global= TRUE, #m$p$txt2[[1]]$name,
 	       y= animUnit( rep( m$p$txt2[[2]]$y, 1+ length( m$p$ln2[[2]]$gp$col)),
 						id= rep(1:length( m$p$txt2[[1]]$y), 1+ length( m$p$ln2[[2]]$gp$col))),
 					   interpolate= "discrete",
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 8)
 
   # Ensure y values for axis lines 
   #grid.animate( m$p$sgmnt2[[1]]$name, #grep= TRUE, global= TRUE, #m$p$txt2[[1]]$name,
@@ -681,7 +704,7 @@ distribution of activity across them and how it has evolved over time.
 							"visible", "hidden"),
 						   id= rep( 1:(length( m$p$ln2[[2]]$gp$col)),
 							   length( m$p$ln2[[2]]$gp$col)+ 1)),
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
 
   # Make each highlighted line text visible in turn
   grid.animate( m$p$txt2[[2]]$name, visibility= animValue( fifelse(
@@ -690,21 +713,21 @@ distribution of activity across them and how it has evolved over time.
 							"visible", "hidden"),
 						   id= rep( 1:(length( m$p$txt2[[2]]$gp$col)),
 							   length( m$p$txt2[[2]]$gp$col)+ 1)),
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
 
   # Adv shares always hidden
   grid.animate( m$p$txt2[[3]]$name, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
 
   # Make comments visible/invisible
   grid.animate( m$p$lbl2[[1]]$name, grep= TRUE, global= TRUE, visibility= "visible",
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
   grid.animate( m$p$sgmnt2[[1]]$name, visibility= "visible",
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
   grid.animate( m$p$lbl2[[2]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
   grid.animate( m$p$lbl2[[3]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 1), duration= 7)
 
 
   # Animate line between adv and adv share
@@ -712,24 +735,24 @@ distribution of activity across them and how it has evolved over time.
 		   y= animUnit( x= unit( c( m$p$ln2[[1]]$y, m$p$ln1[[1]]$y), unit= "native"),
 			       id= rep( m$p$ln1[[1]]$id, 2),
 			       timeid= rep( 1:2, each= length( m$p$ln1[[1]]$id))),
-	       begin= paste0( "anmtn_dmy_id.begin+", 7), duration= 3)
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
 
   # Animate label for line - only a sinlge point per text, so don't specifiy timeid
   grid.animate( m$p$txt2[[1]]$name,
 		   y= animUnit( x= unit( c( m$p$txt2[[1]]$y, m$p$txt1[[1]]$y), unit= "native"),
 			       id= c( 1:length(m$p$txt2[[1]]$y),  1:length(m$p$txt1[[1]]$y))),
   #			     timeid= rep( 1:2, each= length( m$p$txt2[[1]]$y))), DONT UNDERSTAND WHY THIS DOESNT WORK
-	       begin= paste0( "anmtn_dmy_id.begin+", 7), duration= 3)
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
 
   # Make comments visible/invisible
   grid.animate( m$p$lbl2[[1]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 7), duration= 3)
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
   grid.animate( m$p$sgmnt2[[1]]$name, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 7), duration= 3)
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
   grid.animate( m$p$lbl2[[2]]$name, grep= TRUE, global= TRUE, visibility= "visible",
-	       begin= paste0( "anmtn_dmy_id.begin+", 7), duration= 3)
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
   grid.animate( m$p$lbl2[[3]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 7), duration= 3)
+	       begin= paste0( "anmtn_dmy_id.begin+", 8), duration= 3)
 
   # Ensure y values for highlight line are set to adv_shr
   grid.animate( m$p$ln2[[2]]$name,
@@ -737,13 +760,13 @@ distribution of activity across them and how it has evolved over time.
 			       id= rep( m$p$ln1[[1]]$id, 1+ length( m$p$ln1[[2]]$gp$col)),
 			       timeid=  rep( 1:( length( m$p$ln1[[2]]$gp$col)+ 1),
 					   each= length( m$p$ln1[[1]]$id))),
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
 
   # Ensure y values for grey line labels are set adv for lines as well
   grid.animate( m$p$txt2[[2]]$name, y= animUnit( rep( m$p$txt1[[1]]$y, 1+ length( m$p$ln1[[2]]$gp$col)),
 						id= rep(1:length( m$p$txt1[[1]]$y), 1+ length( m$p$ln1[[2]]$gp$col))),
 					   interpolate= "discrete",
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
 
   # Make each highlighted line visible in turn
   grid.animate(  m$p$ln2[[2]]$name, visibility= animValue( fifelse(
@@ -752,7 +775,7 @@ distribution of activity across them and how it has evolved over time.
 							"visible", "hidden"),
 						   id= rep( 1:(length( m$p$ln1[[2]]$gp$col)),
 							   length( m$p$ln1[[2]]$gp$col)+ 1)),
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
 
   # Make each highlighted line text visible in turn
   grid.animate( m$p$txt2[[3]]$name, visibility= animValue( fifelse(
@@ -761,28 +784,27 @@ distribution of activity across them and how it has evolved over time.
 							"visible", "hidden"),
 						   id= rep( 1:(length( m$p$txt2[[3]]$gp$col)),
 							   length( m$p$txt2[[3]]$gp$col)+ 1)),
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
   # ... and y position from frist graph
   grid.animate( m$p$txt2[[3]]$name, y= animUnit( m$p$txt1[[2]]$y,
 						   id= rep( 1:(length( m$p$txt2[[3]]$gp$col)),
 							   length( m$p$txt2[[3]]$gp$col)+ 1)),
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
 
   # Adv always hidden
   grid.animate( m$p$txt2[[2]]$name, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
 
 
   # Make comments visible/invisible
   grid.animate( m$p$lbl2[[1]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
   grid.animate( m$p$sgmnt2[[1]]$name, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
   grid.animate( m$p$lbl2[[2]]$name, grep= TRUE, global= TRUE, visibility= "hidden",
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
   grid.animate( m$p$lbl2[[3]]$name, grep= TRUE, global= TRUE, visibility= "visible",
-	       begin= paste0( "anmtn_dmy_id.begin+", 10), duration= 7)
-
+	       begin= paste0( "anmtn_dmy_id.begin+", 11), duration= 7)
   m$f$sv_svg( "lctn_lctn_lctn.svg")
 
 #+END_SRC
@@ -986,6 +1008,278 @@ Seven key facts about the currencies traded in the FX market using data from the
 
 [[file:Whats_what.gif]]
 
+*** Script for video :noexport:
+In this animation we're using data from the BIS triannual survey
+to see how FX trading activity in different currency pairs has evolved
+over time.
+
+Each coin represents 5 billion dollars worth of the row currency
+traded with the column currency. 
+
+We start in 1992 and we can see that back then the dollar dominates,
+with 80% of activity in the dollar column.
+
+Through 1995 and 1998 we mostly see green growth, with only a single
+red decline. But in 2001, EMU results in declines, particulalry in
+EURO pairs, although there is growth in some non-Euro pairs.
+
+In 2004, activity in Euro pairs rebounds and there is growth in most
+pairs which continues in 2007, 2010 and 2013. 
+
+In 2016, there is a contraction in the largest currency pairs, but
+Chinese Yuan and many Asian pairs continue to grow.
+
+By 2019, activity in most pairs is at its highest, and overall there
+has been huge growth with dollar pairs still dominating as they did
+back in 1992.
+
+#+BEGIN_SRC R
+  m$i$bis <- fread( "~/Dnk/Srcs/BIS/Out/Crcny_Prs.csv")
+
+  m$i$bis[ , vl:= vl/1e3]
+  # Unit size (in billions)
+  m$p$unt_sz <- 5
+
+  # Identify pre-Euro currencies, as those not present in 2019
+  m$p$eur_crncys <- m$i$bis[ !crncy1 %in% m$i$bis[ yr== 2019, unique( crncy1)],
+			    .( yr= max( yr)),
+			    .( crncy= crncy1)]
+  m$i$bis[ crncy1 %in% m$p$eur_crncys$crncy, crncy1 := 'EUR']
+  m$i$bis[ crncy2 %in% m$p$eur_crncys$crncy, crncy2 := 'EUR']
+
+  m$i$bis <- m$i$bis[ crncy1!= "USD" & ( crncy1!= "EUR" | ( crncy1== "EUR" & crncy2 %in% c( "other", "USD"))) &
+	   ( crncy1!= "other" | ( crncy1== "other" & crncy2 %in% c( "other", "USD"))) &
+	  crncy2 %in% c( "USD", "EUR", "other")]
+
+  # Identify small currencies (less that unit size on average) and merge into "other"
+  m$p$sml_crncy <- m$i$bis[ , .( vl= sum( vl)), .( yr, crncy1)][ , .( vl= mean( vl)), crncy1][ vl <= m$p$unt_sz, crncy1]
+  m$i$bis[ crncy1 %in% m$p$sml_crncy, crncy1:= "other"]
+
+  m$i$bis[ crncy1== "other" & crncy2== "other", vl:= vl/ 2]
+
+  # aggregate (for EUR and countercurrency changes) and convert to billions
+  m$x$bis <- m$i$bis[ , .( vl= sum( vl)), .( yr, crncy1, crncy2)]  
+
+
+
+  # reorder currencies based on value (but always put "other" last) 
+  m$x$bis[ , crncy2 := factor( crncy2, levels= c( "USD", "EUR", "other"))]
+  m$x$bis[ , crncy1 := factor( crncy1,
+			      c( m$x$bis[ yr== 2019 & crncy1 != "other",
+					 .( vl= sum( vl)), crncy1][ order( -vl), crncy1],
+				"other"))]
+
+  m$x$bis <- m$x$bis[ order( crncy1, crncy2, yr)]
+
+  # Work out x position of each counter-currency - using highest max value across the years
+  m$o$crncy_x <- m$x$bis[ , .( wdth= 2* ( sum( vl))^0.51), .( yr, crncy2)][
+		       order( crncy2), .( wdth= max( wdth)), .( crncy2)]
+  m$o$crncy_x[ , crncy_x:= as.numeric( crncy2)* m$p$unt_sz + cumsum( wdth)- wdth]
+  setkeyv( m$o$crncy_x, "crncy2")
+
+  # Work out y position of each currency
+  m$o$crncy_y <- m$x$bis[ , .( mx_vl= max( vl), vl, crncy2), .( crncy1)][ vl== mx_vl, .( crncy1, crncy2, mx_vl)]
+  m$o$crncy_y <- m$o$crncy_y[ m$o$crncy_x, .( crncy1, hght= ( mx_vl/ ( wdth/ m$p$unt_sz))), on= "crncy2"]
+  m$o$crncy_y[ hght < 2.1 * m$p$unt_sz, hght:= 2.1 * m$p$unt_sz]
+  m$o$crncy_y[ order( crncy1), crncy_y:= cumsum( 1.5 * m$p$unt_sz + hght)- hght]
+  setkeyv( m$o$crncy_y, "crncy1")
+
+
+  # Create units of 1 billion
+  m$i$unts <- data.table( n= seq( 0, 1590, by= m$p$unt_sz), dmy= 1)
+  # dummy needed to allow cross join
+  m$x$bis[ , dmy:= 1]  
+  # Disaggregate to units
+  m$o$bis <- merge( m$x$bis, m$i$unts, allow.cartesian= TRUE, by= "dmy")
+  m$o$bis[ , prsnt:= round( vl, 0) >= n] # + m$p$unt_sz/ 2]
+  # Remove unnnecessary rows - n is greater than the maxium n present
+  m$o$bis <- m$o$bis[ , .( yr, mx= max( n* prsnt), vl, n, prsnt), .( crncy1, crncy2)][ n <= mx]
+
+  # Identify gains and losses
+  m$o$bis[ order( crncy1, crncy2, n, yr), prvs_prsnt:= shift( prsnt), .( crncy1, crncy2, n)] 
+  m$o$bis[ prsnt== TRUE & is.na( prvs_prsnt), prvs_prsnt:= TRUE] # treat new pair as if they were present before
+  m$o$bis <- m$o$bis[ prsnt== TRUE | prvs_prsnt== TRUE,
+	  sgn:= as.numeric( prsnt)- as.numeric( prvs_prsnt)]
+
+
+  # Repeat each year three times: first time to highlight losses, next to highlight gains and last the final position
+  m$o$bis <- m$o$bis[ rep( 1:.N, each= 3), cbind( i= 1:3, .SD)][ order( yr, sgn),
+								cbind( frm= i + 3* ( .GRP- 1), .SD), yr]
+
+  m$o$bis[ , clr:= fifelse( sgn== -1, m$p$clr$rd, fifelse( sgn== 0, m$p$clr$drk_gry, m$p$clr$grn))]
+
+  m$o$bis <- rbindlist( list(
+      m$o$bis[ i== 1 & sgn != 1],
+      m$o$bis[ i== 2 & sgn != -1],
+      m$o$bis[ i== 3 & sgn != -1][, clr:= m$p$clr$drk_gry]))
+
+  setkeyv( m$o$bis, "crncy2")
+  m$o$bis <- m$o$bis[ m$o$crncy_x]
+  setkeyv( m$o$bis, "crncy1")
+  m$o$bis <- m$o$bis[ m$o$crncy_y]
+
+  # Position units
+  m$o$bis[ , x:= n %% ( m$p$unt_sz * round( wdth / m$p$unt_sz, 0))]
+  m$o$bis[ , y:= n %/% ( m$p$unt_sz * round( wdth / m$p$unt_sz, 0)) * m$p$unt_sz ]
+
+  # Commentary
+  m$o$cmnts <- list(
+      3, "black", 115, -350, "1) Start in 1992. Each dot represent 5 billion (in dollars) \n between the column currency and row currency.\n Trades against US dollars (first column) dominate",
+  #    4, "black", 85, -300, "1) Dollar dominates in 1992 \n- 80% of trades against USD",
+      5, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
+      6, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
+      7, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
+      8, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
+      10, m$p$clr$rd, 120, -42, "3) European Monetary Union leads to large reductions in Euro pairs",
+      11, m$p$clr$rd, 120, -42, "3) European Monetary Union leads to large reductions in Euro pairs",
+      12, m$p$clr$rd, 120, -42, "3) European Monetary Union leads to large reductions in Euro pairs",
+      11, m$p$clr$grn, 115, -145, "3) ... but there is\ngrowth in several\nother pairs",
+      12, m$p$clr$grn, 115, -145, "3) ... but there is\ngrowth in several\nother pairs",
+      14, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      15, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      16, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      17, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      18, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      19, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      20, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      21, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      22, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      23, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      24, m$p$clr$grn, 90, -500, "4) Strong growth in many \n pairs in 2004 thru 2013",
+      25, m$p$clr$rd, 210, -35, "5) Many large pairs\ndecline in 2016",
+      26, m$p$clr$rd, 210, -35, "5) Many large pairs\ndecline in 2016",
+      27, m$p$clr$rd, 210, -35, "5) Many large pairs\ndecline in 2016",
+      26, m$p$clr$grn, 90, -470, "5) ... but Chinese Yuan \n(CNY) and many Asian\npairs continue to grow",
+      27, m$p$clr$grn, 90, -470, "5) ... but Chinese Yuan \n(CNY) and many Asian\npairs continue to grow",
+      28, m$p$clr$grn, 100, -500, "6) Return to growth in\n2019 for most but JPY",
+      29, m$p$clr$grn, 100, -500, "6) Return to growth in\n2019 for most but JPY",
+      30, m$p$clr$grn, 100, -500, "6) Return to growth in\n2019 for most but JPY",
+      30, "black", 92, -600, "7) Dollar still dominates in\n2019 as it did in 1992")
+
+
+  m$o$cmnts <- as.data.table( matrix( unlist( m$o$cmnts), ncol= 5, byrow= TRUE,
+				     dimnames= list( NULL, c( "frm", "clr", "x", "y", "cmnt"))))
+  m$o$cmnts[ , `:=`( x= as.numeric( x), y= as.numeric( y))]
+
+  # Years
+  m$o$yrs <- m$o$bis[ !is.na( yr), .N, yr]
+
+
+  m$p$frms <- m$o$bis[ yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]
+  m$p$frms <- c( m$p$frms[1], m$p$frms)
+
+  # Let's plot it!
+  saveGIF({ ani.options(interval = 2, nmax = 75)
+  #saveVideo({ 
+  #for( j in m$o$bis[ yr== 2016  & yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
+  for( j in m$p$frms <- c( m$p$frms[1], m$p$frms[1], m$p$frms)){
+      print(
+	  ggplot( data= m$o$bis[ frm== j]) +
+	  # years -  background tiles
+	  geom_tile( data= function( x)
+	      x[ , .N, yr][ m$o$yrs, on= "yr"][
+		, .( yr, n= seq_along( yr),
+		    fll= fifelse( is.na( N), m$p$clr$lght_gry, m$p$clr$bckgrnd_gry),
+		  clr= fifelse( is.na( N), m$p$clr$drk_gry, m$p$clr$bckgrnd_gry))],
+	      mapping= aes( x= -36 + n * 22, y= 29, colour= I( clr), fill= I( fll)),
+	      width= 22, height= 20) +
+	  # years - text
+	  geom_text( data= function( x)
+	      x[ , .N, .( i, yr)][ m$o$yrs, on= "yr"][
+		, .( yr, n= seq_along( yr),
+		    fll= fifelse( is.na( N), m$p$clr$lght_gry, "white"),
+		    fntfc= fifelse( is.na( N), "plain", "bold"),
+		    clr= fifelse( is.na( N), m$p$clr$drk_gry,
+				 ifelse(  i <= 1, m$p$clr$rd,
+						    ifelse( i <= 2, m$p$clr$grn, "black"))))],
+	      mapping= aes( x= -36 + n * 22, y= 29, label= yr, fontface= I( fntfc), colour= I( clr)),
+	      size= 5) +
+	  # logo
+	  annotation_custom( rasterGrob( m$p$plt$eyesonfx_lg), xmin= 202, xmax=260, ymin=14, ymax=40) +
+	  # vertical lines
+	  geom_segment( data= m$o$crncy_x,
+			mapping= aes( x= crncy_x - 4, xend= crncy_x - 4,
+				     y= 15, yend= -655),
+		       colour= "white", size= 0.5) +
+	  # horizontal lines
+	  geom_segment( data= m$o$crncy_y,
+			mapping= aes( x= -25, xend= +Inf,
+				     y= -crncy_y + m$p$unt_sz, yend= -crncy_y + m$p$unt_sz),
+		       colour= "white", size= 0.5) +
+	  # gain/loss label
+	  geom_label( data= function( x) x[ , .N, .( yr, i)][
+					   , .( lbl= ifelse(  i <= 1, "loss",
+						     ifelse( i <= 2, "gain", "final")),
+					       fll= ifelse(  i <= 1, m$p$clr$rd,
+						    ifelse( i <= 2, m$p$clr$grn, "black")))],
+		     mapping= aes( x= -13, y= 9, label= lbl, fill= I( fll)),
+		     fontface= "bold", colour= "white", size= 6, label.size= unit( 1, "mm"),
+		     label.padding= unit( 0.25, "lines"),
+		     hjust= 0.5, vjust= 0.5) +
+	  # currencies - across top
+	  geom_text( data= function( x)
+	      x[ , .( crncy_x= max( crncy_x)+ min( x), sgn= mean( sgn), i= max( i)), .( crncy2)][
+		 ,.( crncy_x, clr= fifelse( sgn== 0 | i>= 3, "black", fifelse( sgn< 0, m$p$clr$rd, m$p$clr$grn)),
+		    fnt= fifelse( mean(sgn)== 0 | i>= 3, "plain", "bold")),
+			       .( crncy2)],
+		mapping= aes( x= crncy_x, y= 1, label= crncy2, colour= I( clr), fontface= I( fnt)),
+		hjust= 0, vjust= 0, size= 5.5) +
+	  # currencies - down the side
+  #	geom_text( data= function( x)
+  #	    x[ , .( y= min( crncy_y) + min( y) + m$p$unt_sz), .( crncy1)],
+  #	    mapping= aes( y= -y, label= crncy1),
+  #            colour= "black", fontface= "plain",
+  #	    x= -25, hjust= 0, vjust= 0.5, size= 5.5) +
+	  # highlight
+  #	geom_text( data= function( x)
+  #	    x[ sgn!= 0 & i < 3,
+  #              .( n, mx= max( n), y= crncy_y + min( y) + m$p$unt_sz,
+  #		   clr),
+  #	      .( crncy1)][ n== mx],
+  #	    mapping= aes( y= -y, label= crncy1, colour= I( clr)),
+  #            fontface= "bold", x= -25, hjust= 0, vjust= 0.5, size= 5.5) +
+	  # currencies - down the side
+	    geom_text( data= function( x)
+		x[ , .( n, mx= max( n), y= crncy_y + min( y) + m$p$unt_sz,
+		       clr= fifelse( sgn== 0 | i>= 3, "black", clr),
+		       fnt= fifelse( sgn== 0 | i>= 3, "plain", "bold")),
+		  .( crncy1)][ n== mx][ order( -clr)],
+		mapping= aes( y= -y, label= crncy1, colour= I( clr), fontface= I( fnt)),
+		x= -25, hjust= 0, vjust= 0.5, size= 5.5) +
+	  # blank dots
+	  geom_point( mapping= aes( x= crncy_x + x, y= -crncy_y -y),
+		     colour= "white", alpha= 1, size= 2.5) +
+	  # dots
+	  geom_point( mapping= aes( x= crncy_x + x, y= -crncy_y -y, colour= I( clr)),
+		     alpha= 1, size= 2.5) +
+	  # key dot
+	  annotate( geom= "point", x= 5, y= -659, size= 2.5, colour= m$p$clr$drk_gry) + 
+	  # key text
+	  annotate( geom= "text", x= 7, y= -663, hjust= 0, vjust= 0, size= 5,
+		   label= " = 5 billion USD average daily") +
+	  # source
+	  annotate( geom= "text", x= 259, y= -663, hjust= 1, vjust= 0, size= 5,
+		   label= "Source: BIS", colour= m$p$clr$drk_gry) +
+	  # commentary
+	  geom_label( data= m$o$cmnts[ frm== j],
+		 mapping= aes( x= x, y= y, label= cmnt, fill= I( clr)),
+		 alpha= 1.0, colour= "white", size= 6, fontface= "bold") +
+	  scale_x_continuous( limits= c( -26, 260), expand= expansion(mult = 0, add = 0)) +
+	  scale_y_continuous( limits= c( -665, 40), expand= expansion(mult = 0, add = 0)) +
+  #      theme_grey()) 
+	 theme_void() +
+      theme( panel.background= element_rect(fill = NA, colour= NA),
+	    plot.background = element_rect( colour= NA, fill = m$p$clr$bckgrnd_gry)))
+  #    geom_label( data= function( x) x[ n==0],
+  #	      mapping= aes( x= crncy_x + x, y= -crncy_y -y- m$p$unt_sz, label= round( vl, 0)),
+  #	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
+  #	      hjust= 0, vjust= 0.5 ) +
+  }}
+  , movie.name = "Whats_what.gif", ani.width = 500* 1.25, ani.height = 500* 1.25) 
+  #, video.name = "Whats_what.mp4", ani.width = 624, ani.height = 624, interval= 2) 
+#+END_SRC
+
+*** Old  :noexport:
 #+BEGIN_SRC R
   m$i$bis <- fread( "/Dnk/Srcs/BIS/Out/Crcny_Prs.csv")
 
@@ -1222,7 +1516,6 @@ impact of its go live in January 1999, between the 1998 and 2001 survey.
 
 After USD, referred to as the G7 currencies
 The market has grown every period, sa
-
 ** What's in a Name?
    SCHEDULED: <2020-02-29 Sat>
 :PROPERTIES:
@@ -2125,4 +2418,9 @@ library ( ggplot2)
 
 
 
-
+* Ideas
+** Neural Networks with Asymptotics Control - Alexandre Antonov
+Asymptotic Splines and Constrained Radial Layers
+Automatic differentiation = Back propagation
+Doesn't extrapolate well - Extreme Value Theory
+Kolmogorov Arnold snake algorithm to conver to lower dimension - reminds me of SOM
