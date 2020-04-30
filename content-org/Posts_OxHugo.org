@@ -143,18 +143,18 @@ SCHEDULED: <2020-03-05 Thu>
 :EXPORT_DATE: 2020-03-06
 :EXPORT_FILE_NAME: so_you_and_you_run
 :END:
-[[file:catch_up_with_the_sun.gif]]
+[[file:catch_up_with_the_sun.svg]]
 
-Like the lyrics from Pink Floyd's famous song 'Time', the 24 hour FX
+Like the lyrics from Pink Floyd's famous track 'Time', the 24 hour FX
 market is often said to 'chase the sun'. In this blog, using more than
-70 billion data points, I show X different ways in which time has a
-critical impact on the FX market.
+5 million data points, I show four different ways in which time plays a
+critical role in currency markets.
 #+hugo: more
 
-*** Read in and summarise data
+*** Read in and summarise data :noexport:
 #+BEGIN_SRC R
-  m$p$fls <- list.files( path= "/Dnk/Srcs/Tr_FX/Smry/", full.names= TRUE)[
-      grepl( "*.csv", list.files( path= "/Dnk/Srcs/Tr_FX/Smry/"))]
+  m$p$fls <- list.files( path= "~/Dnk/Srcs/Tr_FX/Smry/", full.names= TRUE)[
+      grepl( "*.csv", list.files( path= "~/Dnk/Srcs/Tr_FX/Smry/"))]
 
   m$x$tr_fx$dly <- list()
   m$x$tr_fx$mntly <- list()
@@ -165,7 +165,7 @@ critical impact on the FX market.
       m$i$tr_fx <- fread( fl)
 
       # Convert time to POSIX and London time
-      m$i$tr_fx[ , tm:= fastPOSIXct( tm, tz= "Europe/London")]
+      m$i$tr_fx[ , tm:= fastPOSIXct( tm, "Europe/London")]
       m$i$tr_fx[ , N:= as.numeric( N)]
 
       # Determine FX day as London time + 2 hours - and remove any weekend days that remain
@@ -243,7 +243,275 @@ critical impact on the FX market.
 - The working week
 - Time of the day
 - Intra-hour
-*** Analyse data
+*** More processing of data                                        :noexport:
+#+BEGIN_SRC R
+  m$o$tr_fx <- rbindlist( list(
+      # each month over all 10 years
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0)),
+		    .( lbl= as.character( year( fx_dy)), 
+		      tm= as.numeric( as.yearmon( fx_dy)))],  
+  #    # each  month by year
+  #    m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0), lbl= month.abb[ min( month( fx_dy))]),
+  #		  .( tm= month( fx_dy), grp1= year( fx_dy))], 
+      # each week of month by year
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0),
+		    lbl= month.abb[ min( month( fx_dy))]),
+		      .( tm= week( fx_dy))], 
+      # each working day of month by average month
+      m$x$tr_fx$dly[ , .( N= sum( N), N0= sum( N0)),
+		    .( lbl= substr( weekdays( fx_dy), 1, 1),
+			    tm= wday( fx_dy)- 1 + 5 * day( fx_dy) %/% 7)],
+      # each 15 minute slot of day
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( tm, "%H", tz= "Europe/London"),
+			tm= as.numeric( floor_date( tm, "15 minute")))],
+      # each minute of hour
+      m$x$tr_fx$mntly[ , .( N= sum( N), N0= sum( N0)),
+		      .( lbl= strftime( as_hms( floor_date( tm, "5 minute")), "%M"),
+			tm= minute( tm))]),
+      idcol= "typ", use.names= TRUE)
+
+  # Want same number of points in each period
+  # Index each row 
+  m$o$tr_fx[ order( typ, tm), `:=`( i= ( .I- min( .I))/ .N), typ]
+  m$o$tr_fx[ , `:=`( N2= N * .N/ 120), typ]
+
+  # Cartseaina product of index and type
+  tmp <- merge( x= m$o$tr_fx[ typ== 1, .( ky= 1, i)],
+	       y= m$o$tr_fx[ , .N, typ][ , .( ky= 1, typ)], by= "ky", allow.cartesian= T)
+
+  setkeyv( m$o$tr_fx, c( "typ", "i"))
+  setkeyv( tmp, c( "typ", "i"))
+
+  # Fiddly frig to get area plot to work
+  m$o$scld_tr_fx <- m$o$tr_fx[ tmp, roll= TRUE][
+			  , .( N= N2, lbl, i, tm= tm + 0/1000 * (.I- min( .I))/ .N), .( typ, grp= tm)]
+
+  # standardize time
+  m$o$scld_tr_fx[ , tm1:= ( tm- min( tm))/( max( tm)- min( tm)), typ]
+
+  # group
+  m$o$scld_tr_fx[ , grp:= fifelse( typ== 3, as.character( tm), lbl)]
+
+  # Important times in the working day
+  m$o$cmnts <- data.table(
+      typ= 4,
+      tm= as.numeric( floor_date( as.POSIXct(
+	  c( "1970-01-01 07:00", "1970-01-01 13:00", "1970-01-01 13:30", "1970-01-01 15:45", "1970-01-01 17:00",
+	    "1970-01-01 22:00"),
+				 tz= "Europe/London"), "15 minute")),
+      cmnt= c( "London open", "NY open", "Major US data", "WMR Fix", "London close", "NY Close"),
+      clr= c( rep( m$p$clr$grn, 4), rep( m$p$clr$rd, 2)))
+
+  # Highlight (average) week of UK Holidays
+  m$p$hldys <-  as.data.table( table( week( holidayLONDON( year= 2010:2019))))
+  setnames( m$p$hldys, c( "wk", "N"))
+  m$p$hldys[ , hldy:= c( "New Year's", rep( "Easter", 5), rep( "May\nDay", 2), rep( "Last May Monday", 3),
+			rep( "August Bank Holiday", 2),  "Christmas")]
+
+  m$p$hldys <- m$p$hldys[ !wk %in% c( 19, 21, 22, 23, 34)]
+
+  m$o$cmnts <- rbindlist(
+      list( m$o$cmnts,
+	   data.table( m$p$hldys[ , .( sum( N), wk, i= .I- min( .I)), hldy][
+			     , .( typ= 2, tm= as.numeric( wk), cmnt= fifelse( i== 0, hldy, ""), clr= m$p$clr$rd)])))
+
+  # Highlight Mondays and Thursdays
+  m$o$cmnts <- rbindlist(
+      list( m$o$cmnts,
+	   m$o$scld_tr_fx[ typ== 3 & tm %% 5 %in% c( 1, 4),
+			  .( typ= min( typ)), .( tm)][
+		 , .( typ, tm, cmnt= fifelse( tm %% 5== 1, "Mon", "Thu"),
+		     clr= fifelse( tm %% 5== 1, m$p$clr$rd, m$p$clr$grn))]
+	   ))
+
+  # Highlight five minutes
+  m$o$cmnts <- rbindlist(
+      list( m$o$cmnts,
+	   m$o$scld_tr_fx[ typ== 5 & tm %% 5== 0,
+			  .( typ= min( typ)), .( tm, lbl)][
+		 , .( typ, tm, cmnt= fifelse( tm== 0, "On the hour",
+					     fifelse( tm== 30, "On the half hour",
+						     lbl)), clr= m$p$clr$grn)]
+	   ))
+
+
+  setkeyv( m$o$cmnt, c( "typ", "tm"))
+  setkeyv( m$o$scld_tr_fx, c( "typ", "tm"))
+
+  # Joing comment to data to get N values
+  m$o$cmnts <- m$o$scld_tr_fx[ , .( N= max( N), tm1= max( tm1)),.( typ, tm)][ m$o$cmnts]
+
+  m$o$cmnts <- rbindlist( list(
+      m$o$cmnt,
+      m$o$cmnt[ , .( tm= 0, N= fifelse( clr== m$p$clr$rd, .9e8, .92e8), tm1= 0.2), .( typ, clr)][
+	    , .( typ, tm, N, tm1,
+		cmnt= c( "Troughs around \n UK holidays", "Monday troughs", "Thursday peaks",
+			    "Trading centre opens", "Trading centre closes",
+			"Peaks every 5 minutes")[.I],
+		clr)]))
+
+#+END_SRC
+*** Analyse data :noexport:
+#+BEGIN_SRC R
+  quartz( width= 1.25 * 5, height= 1.25 * 5)
+
+  m$o$plt <- ggplot( data= m$o$scld_tr_fx) +
+      geom_segment( data= function( x) x[ , .( tm1= min( tm1)), .( typ, grp)],
+			 mapping= aes( x= tm1, xend= tm1, group= typ), y= 0, yend= 1.05e8, colour= "white") +
+      geom_text( data= function( x) x[ , .( tm1= min( tm1), lbl= min( lbl)), .( typ, grp)],
+			 mapping= aes( x= tm1, label= lbl), y= 1.05e8, size= 4.5, hjust= 0) + 
+      geom_ribbon( mapping= aes( x= tm1, ymax= N, ymin= 0, group= typ),
+		  position= "identity", alpha= 0.5, fill= "grey30", colour= "grey30") +
+      geom_point( data= m$o$cmnts[ , cbind( .SD, shp= fifelse( m$o$cmnts$clr== m$p$clr$grn, 24, 25))],
+		 mapping= aes( x= tm1, y= N, fill= I( clr), shape= I( shp)),
+		 colour= "white", size= 3) +
+  #    geom_label( data= m$o$cmnts[ , cbind( .SD, shp= fifelse( m$o$cmnts$clr== m$p$clr$grn, 24, 25))][ cmnt!= ""],
+  #               mapping= aes( x= tm1 + 0.02, y= N, label= cmnt, fill= I( clr)),
+  #               colour= "white", size= 3, hjust= 0) +
+      annotate( geom= "label", x= m$o$cmnts[ cmnt!= ""]$tm1 + 0.015,
+	       y= m$o$cmnts[ cmnt!= ""]$N + 1.5e6 - 3e6 * sign( m$o$cmnts[ cmnt!= ""]$clr== m$p$clr$rd),
+	       label= m$o$cmnts[ cmnt!= ""]$cmnt,
+	       fill= m$o$cmnts[ cmnt!= ""]$clr, colour= "white", size= 5, hjust= 0.5,
+	       vjust= fifelse( m$o$cmnts[ cmnt!= ""]$clr== m$p$clr$grn, 0, 1) ) +
+      annotate( geom= "label", x= -.05, y= 1e8, colour= "white", fill= "black", hjust= 0, vjust= 1, size= 5,
+	       label= c( "Aggregated by month over ten years, activity looks random.\n Re-aggregate over 4 different windows to reveal patterns in time.",
+			"1) Re-aggregate by week of year",
+			"2) Re-aggregate by working day of month",
+			"3) Re-aggregate by 15 minute window of day",
+			"4) Re-aggregate by minute of hour")) + 
+      scale_x_continuous( limits= c( -.05, 1.05)) + 
+      scale_y_continuous( limits= c( 0, 1.1e8)) + 
+      theme_void() +
+      theme( plot.background= element_rect( fill= "grey95", colour= NA),
+	    panel.background= element_rect( fill= "grey95", colour= NA), legend.position= "none")
+
+
+  m$f$plt( plt= m$o$plt, ttl= "Time Dependency of FX Activity",
+	  sbttl= "Ten years of tick data aggregated at different frequencies",
+	  #	sbttl= "Average daily spot volume each month to Febraury 2020",
+	  src= "")
+
+  #grid.text( name= "cmnt1", label= "Volumes pick up in February", x= 2/3, y = .45,
+  #		 hjust = 1, vjust = 0.5, check.overlap = FALSE, default.units = "npc",
+  #		gp = gpar( fontsize= 14, fontface= "bold", col= "black", fill= "white"), draw = TRUE, vp = NULL)
+
+  grid.force()
+  m$p$sgmnts <- lapply( grep( "GRID.segments", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$lns <- lapply( grep( "GRID.polyline", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$rbns <- lapply( grep( "geom_ribbon", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$plygns <- lapply( grep( "GRID.polygon", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$txts <- lapply( grep( "GRID.text", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$pnts <- lapply( grep( "geom_point", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$lbls <- lapply( grep( "GRID.label", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+
+  # Dummy animation to coordinate timing of other animations
+  m$p$icn <- lapply( grep( "GRID.rastergrob", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[[1]]
+  grid.animate( m$p$icn$name, visibility= c( "visible", "visible"),
+		 begin= "0;anmtn_dmy_id.end", duration= 42)
+
+  # Hide all areas but the first
+  lapply( m$p$lns[2:5], function( x)
+      grid.animate( x$name, visibility= "hidden", begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 35))
+
+  lapply( m$p$plygns[2:5], function( x){
+      grid.animate( x$name, visibility= "hidden", begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 35)})
+
+
+  grid.animate( m$p$sgmnts[[1]]$name,
+		   visibility= animValue( fifelse(
+		       m$o$scld_tr_fx[ , .N , .( typ, grp)][ , typ== 1], "visible", "hidden"),
+		       id= 1:length(m$p$sgmnts[[1]]$x0)),
+		   begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+  # axis labels
+  grid.animate( m$p$txts[[1]]$name,
+		   visibility=  animValue( fifelse(
+		       m$o$scld_tr_fx[ , .N , .( typ, grp)][ , typ== 1], "visible", "hidden"),
+		       id= 1:length( m$p$txts[[1]]$x)),
+		   begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+  # hide all highlight points  
+  grid.animate( m$p$pnts[[1]]$name,
+		   visibility=  "hidden",
+		   begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7)
+
+  # Hide all commnet labels, except the first transition
+  lapply( m$p$lbls[ -( 1+ m$o$cmnts[ cmnt!= "", .N])], function( x)
+      grid.animate( x$name, grep= TRUE, global= TRUE,
+		   visibility= "hidden", begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 7))
+
+  # Animate transitions
+  for( i in 1:5){
+      # area
+      grid.animate( m$p$plygns[[1]]$name,
+		     y= animUnit( x= unit( c( m$p$plygns[[max( 1, i-1)]]$y, m$p$plygns[[i]]$y), unit= "native"),
+				 id= rep( m$p$plygns[[1]]$id, 2),
+				 timeid= rep( 1:2, each= length( m$p$plygns[[1]]$id))),
+		     x= animUnit( x= unit( c( m$p$plygns[[max( 1, i-1)]]$x, m$p$plygns[[i]]$x), unit= "native"),
+				 id= rep( m$p$plygns[[1]]$id, 2),
+				 timeid= rep( 1:2, each= length( m$p$plygns[[1]]$id))),
+		   begin= paste0( "anmtn_dmy_id.begin+", 7* ( i-1)), duration= 3)
+      # area border
+      grid.animate( m$p$lns[[1]]$name,
+		     y= animUnit( x= unit( c( m$p$lns[[max(1, i-1)]]$y, m$p$lns[[i]]$y), unit= "native"),
+				 id= rep( m$p$lns[[1]]$id, 2),
+				 timeid= rep( 1:2, each= length( m$p$lns[[1]]$id))),
+		     x= animUnit( x= unit( c( m$p$lns[[max( 1, i-1)]]$x, m$p$lns[[i]]$x), unit= "native"),
+				 id= rep( m$p$lns[[1]]$id, 2),
+				 timeid= rep( 1:2, each= length( m$p$lns[[1]]$id))),
+		   begin= paste0( "anmtn_dmy_id.begin+", 7*( i- 1)), duration= 3)
+      # vertical axis lines
+      grid.animate( m$p$sgmnts[[1]]$name,
+		   visibility= animValue( fifelse(
+		       m$o$scld_tr_fx[ , .N , .( typ, grp)][ , typ== i], "visible", "hidden"),
+		       id= 1:length(m$p$sgmnts[[1]]$x0)),
+		   begin= paste0( "anmtn_dmy_id.begin+", 7* ( i- 1)), duration= 7)
+      # axis labels
+      grid.animate( m$p$txts[[1]]$name,
+		   visibility=  animValue( fifelse(
+		       m$o$scld_tr_fx[ , .N , .( typ, grp)][ , typ== i], "visible", "hidden"),
+		       id= 1:length( m$p$txts[[1]]$x)),
+		   begin= paste0( "anmtn_dmy_id.begin+", 7* ( i- 1)), duration= 7)
+      # hide all highlight points initially
+      grid.animate( m$p$pnts[[1]]$name,
+		   visibility=  "hidden",
+		   begin= paste0( "anmtn_dmy_id.begin+", 7* ( i- 1)), duration= 3)
+      # hide all highlight point labels initially (except the transition label)
+      lapply( m$p$lbls[ -( i+ m$o$cmnts[ cmnt!= "", .N])], function( x)
+	  grid.animate( x$name, grep= TRUE, global= TRUE, visibility= "hidden",
+		       begin= paste0( "anmtn_dmy_id.begin+", 7* ( i- 1)), duration= 7))
+      lapply( m$p$lbls[ ( i+ m$o$cmnts[ cmnt!= "", .N])], function( x)
+	  grid.animate( x$name, grep= TRUE, global= TRUE, visibility= "visible",
+		       begin= paste0( "anmtn_dmy_id.begin+", 7* ( i- 1)), duration= 7))
+      # highlight points
+      grid.animate( m$p$pnts[[1]]$name,
+		   visibility=  animValue( fifelse(
+		       m$o$cmnts[ , .( .N, typ),][ , typ== i], "visible", "hidden"),
+		       id= 1:length( m$p$pnts[[1]]$x)),
+		   begin= paste0( "anmtn_dmy_id.begin+", 7* ( i- 1)+ 3), duration= 4)
+      # highlight point labels
+      lapply( m$p$lbls[ 1: m$o$cmnts[ cmnt!= "", .N]], function( x)
+	  grid.animate( x$name, global= TRUE, grep= TRUE, visibility= fifelse(
+				    m$o$cmnts[ cmnt!= "", .( .N, typ),][
+					    which( x$name== sapply(  m$p$lbls, function( x) x$name)),
+					    typ== i], "visible", "hidden"),
+		   begin= paste0( "anmtn_dmy_id.begin+", 7* ( i- 1)+ 3), duration= 4))
+      # turn off all transition labels ( except the first)
+      lapply( m$p$lbls[ 2:5 + m$o$cmnts[ cmnt!= "", .N]], function( x)
+	  grid.animate( x$name, global= TRUE, grep= TRUE, visibility= "hidden",
+		   begin= paste0( "anmtn_dmy_id.begin+", 7* ( i- 1)+ 3), duration= 4))
+  }
+
+
+  m$f$sv_svg( "catch_up_with_the_sun.svg")
+
+#+END_SRC
+
+- Time of year
+- Time of month
+- The working week
+- Time of the day
+- Intra-hour 
+*** Analyse data - old                                             :noexport:
 #+BEGIN_SRC R
   m$o$tr_fx <- rbindlist( list(
       # each month over all 10 years
@@ -826,7 +1094,7 @@ Concentration within the FX market
 - Rise of non-Bank liquidity providers
 
 #+BEGIN_SRC R
-  m$i$ermny <- fread( "/Dnk/Srcs/Ermny/Out/Ermny_Srvy.csv")
+  m$i$ermny <- fread( "~/Dnk/Srcs/Ermny/Out/Ermny_Srvy.csv")
 
   # restrict to top 10
   m$x$ermny <- m$i$ermny[ rnk <= 10]
@@ -1013,7 +1281,7 @@ In this animation we're using data from the BIS triannual survey
 to see how FX trading activity in different currency pairs has evolved
 over time.
 
-Each coin represents 5 billion dollars worth of the row currency
+Each dot represents 5 billion dollars worth of the row currency
 traded with the column currency. 
 
 We start in 1992 and we can see that back then the dollar dominates,
@@ -1124,7 +1392,7 @@ back in 1992.
 
   # Commentary
   m$o$cmnts <- list(
-      3, "black", 115, -350, "1) Start in 1992. Each dot represent 5 billion (in dollars) \n between the column currency and row currency.\n Trades against US dollars (first column) dominate",
+      3, "black", 115, -350, "1) Start in 1992. Each dot represent 5 billion (in dollars) \n traded between the column currency and row currency.\n Trades against US dollars (first column) dominate",
   #    4, "black", 85, -300, "1) Dollar dominates in 1992 \n- 80% of trades against USD",
       5, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
       6, m$p$clr$grn, 100, -300, "2) Growth through the 1990's \n in many pairs",
@@ -1169,8 +1437,8 @@ back in 1992.
   m$p$frms <- c( m$p$frms[1], m$p$frms)
 
   # Let's plot it!
-  saveGIF({ ani.options(interval = 2, nmax = 75)
-  #saveVideo({ 
+  #saveGIF({ ani.options(interval = 2, nmax = 75)
+  saveVideo({ 
   #for( j in m$o$bis[ yr== 2016  & yr!= 2022 & !( yr== 1992 & i < 3), .N, frm][ order( frm), frm]){
   for( j in m$p$frms <- c( m$p$frms[1], m$p$frms[1], m$p$frms)){
       print(
@@ -1275,8 +1543,8 @@ back in 1992.
   #	      alpha= 0.8, size= 10, label.size= unit( 0, "mm"), label.padding= unit( 0.1, "lines"),
   #	      hjust= 0, vjust= 0.5 ) +
   }}
-  , movie.name = "Whats_what.gif", ani.width = 500* 1.25, ani.height = 500* 1.25) 
-  #, video.name = "Whats_what.mp4", ani.width = 624, ani.height = 624, interval= 2) 
+  #, movie.name = "Whats_what.gif", ani.width = 500* 1.25, ani.height = 500* 1.25) 
+  , video.name = "Whats_what.mp4", ani.width = 624, ani.height = 624, interval= 2) 
 #+END_SRC
 
 *** Old  :noexport:
@@ -2414,13 +2682,278 @@ library ( ggplot2)
 #+RESULTS:
 [[file:chart.png]]
 
-
-
-
-
 * Ideas
 ** Neural Networks with Asymptotics Control - Alexandre Antonov
 Asymptotic Splines and Constrained Radial Layers
 Automatic differentiation = Back propagation
 Doesn't extrapolate well - Extreme Value Theory
 Kolmogorov Arnold snake algorithm to conver to lower dimension - reminds me of SOM
+** Profit & Loss Dialinday
+*** Session 1 - dealers
+Philip Lawson - Head of Portfolio Managmeent
+Opportunity for alpha.
+
+Jeremy Smart - Traditional measures of liquidity - top of book spreads
+have blown out but now returing.  They're seeing volumes 3-4 x - more
+in primary markets than secondary - less internalization at Banks
+Depth is still not there - liquidity still fragile. Their liquidity
+conditions index is still bad, particularly in EM currencies.
+
+Logan Campbell - Global Head of FX - autobahm more full amount
+execution, more mobile based trading
+
+PL - Head of Portfolio Management - Adrian Lee & Partners More
+important to talk to Banks than electronic Going to head up for very
+high transaction costs if just ask for two way price
+
+JS - Infrastructure held up well, except for CME FX Link between spot
+and futures. Prime Brokerage worked fine for them. Huge data spikes,
+need to get prices out to customers as quickly as possible from price
+updates in market.
+
+Reuters are moving to 5ms from 25ms in 2 months - so this is going to
+be an on-going problem. CME likely to be doing the same.
+
+LG - Conditions away from spot. Forwards market had greater
+stress. Prices weren't being made.  Linkages between different markets
+have broken.
+
+JS - Their models have worked fine. Futurization of market . Some
+would argue that in primary markets is the CME. Short term funding and
+basis very weak. Short dated Swap markets under
+pressure. Idiosyncratic issues on WTI on futures due to settlement.
+Message on high don't do Swaps with Banks. Forward market needs
+clearing.
+
+Colin Lambert - BIS paper on GSIFs
+
+PL - They generally trade odd dates. So difficult to electronify. Need
+to speak to Banks.
+
+CL - Standard Chartered paper says FX better for risk-on risk-off than
+S&P 500
+
+**** Chat
+from Profit & Loss Web Events to All Attendees:    12:07  PM
+You can change the layout of the videos by clicking the view icon at top right of your screen.
+from Colin Lambert to All Attendees:    12:32  PM
+The area we didnt really ghet to was FX options - what has it been like in those markets?
+from Julie Ros to All Attendees:    12:33  PM
+Wecome to our first Profit & Loss Dial-In Day everyone! How's everyone doing??? Miss seeing everyone in person - first time in 21 years!
+from Philip Lawson to All Attendees:    12:33  PM
+thats not something we trade in
+from logan campbell to All Attendees:    12:33  PM
+i feel some of the themes that have been discussed aply to the options market aswell. 
+from Jeremy Smart to All Attendees:    12:33  PM
+can't really comment - guess Logan has a better idea
+from Profit & Loss Web Events to All Participants:    12:33  PM
+Please make sure to change your chat selector to "All Attendees" to communicate with others.
+from Colin Lambert to All Attendees:    12:34  PM
+I suppose its a function of the market structure - although its closee to clearing than swaps, I kind of feel its behind in electronification and breadth of participants
+from logan campbell to All Attendees:    12:34  PM
+depth has been problematic though improving, and i think phillips comments aroudn liquidity providers and banks needing to work closer together especialyl for larger trades and in chanllenged market conditions really apply
+from logan campbell to All Attendees:    12:35  PM
+agree colin
+from logan campbell to All Attendees:    12:35  PM
+i do feel the themes that were discussed apply to it aswell
+from Colin Lambert to All Attendees:    12:35  PM
+Thabnks for the point on clearing Jeremy - given me a question for the last panel of the day!
+from Jeremy Smart to All Attendees:    12:36  PM
+you just can't imagine a world where we look back in 10 years and still ahve broker driven markets with pure bilateral credit settling physical non-digital ccies
+from Jeremy Smart to All Attendees:    12:36  PM
+so it has to happen
+from Colin Lambert to All Attendees:    12:37  PM
+Ah, but I said that 10 years ago!
+from Jeremy Smart to All Attendees:    12:37  PM
+and swap trading could move to a CLOB structure for set dates and short dates
+from logan campbell to All Attendees:    12:37  PM
+in general like jeremy alluded to ... i feel one take away is what we arent talking about! - we arent talking about pb capacity issuse as jeremy mentioned, we arent talking about issues in settlement or confos or anythign related .. this migth not be setting the bar hight for our market, but i dont feel we can take that for granted given the nature of the global shutdown disruption we have had
+from Richard Turer to All Attendees:    12:37  PM
+Jeremy,  Think we have to move forwards to electronification.
+from Jeremy Smart to All Attendees:    12:37  PM
+quite richard
+from Jeremy Smart to All Attendees:    12:38  PM
+it needs to move - i understand bespoke dates etc may not be clob traded
+from Jeremy Smart to All Attendees:    12:38  PM
+but there is no reason why short dtaes, 1m, IMM etc shouldn't
+from Richard Turer to All Attendees:    12:38  PM
+The only way we are going to get better at it is to slowly move in that direction and solve the problems as they come along...like we did with algos 10 years ago....
+from Jeremy Smart to All Attendees:    12:38  PM
+other than the credit issues
+from Jeremy Smart to All Attendees:    12:38  PM
+exactly
+from Jeremy Smart to All Attendees:    12:39  PM
+I think the momentum is moving that way but as with everything in our market, it's like herding cats into a swimming pool :-)
+from Richard Turer to All Attendees:    12:39  PM
+But also problem with forwards curves is the disparity in pricing capabilities between banks/providers.  Credit is also key.  I think pricing model in the future will be 1)spot 2)fwds 3) credit
+from Richard Turer to All Attendees:    12:40  PM
+3 parts in the price
+from Colin Lambert to All Attendees:    12:40  PM
+Here's the link to the BIS paper i was talking about https://www.bis.org/publ/work836.htm not sure I agree with all conculsions but the G-SIB window dressing is very pertinent
+from Jeremy Smart to All Attendees:    12:40  PM
+quite and all should be competed separately
+from Richard Turer to All Attendees:    12:40  PM
+Bingo!  Im sure we've ranted about this in the past!
+from Jeremy Smart to All Attendees:    12:40  PM
+the disparity in capabilitis is a really good point but that can only change if we get reliable trading and market data
+from Jeremy Smart to All Attendees:    12:40  PM
+that is key to moving things forward - if you mind the un
+from Jeremy Smart to All Attendees:    12:40  PM
+pun
+from Richard Turer to All Attendees:    12:41  PM
+yes
+from Jeremy Smart to All Attendees:    12:41  PM
+i'm sure it will happen - 360T are definitely giving it a good go
+from Jeremy Smart to All Attendees:    12:42  PM
+and i think the chnaces of success are reasonable but we do need to have clearing as well to really move past the Prime Brokerage model
+from Jeremy Smart to All Attendees:    12:42  PM
+and that requires  abit of a mind shift around settlement
+from Richard Turer to All Attendees:    12:42  PM
+I used to manually price a cable curve....it was really interesting to be able to see how it works and price particular non standard dates.  Surely this can now be managed much more sytematically
+from Jeremy Smart to All Attendees:    12:42  PM
+with the data for sure
+from philip Lawson to All Attendees:    12:42  PM
+thank you guys for inviting us on the panel. really enjoyed the discussion with you all. be safe and look forward to our further conversations.
+from Jeremy Smart to All Attendees:    12:43  PM
+thanks Philip
+from philip Lawson to All Attendees:    12:43  PM
+have a 1pm conference call i have to hop to
+from Colin Lambert to All Attendees:    12:43  PM
+thanks Phillip, really enjoyed it
+from Jeremy Smart to All Attendees:    12:44  PM
+I don't know how much curve you need to have when rates are zero... :-)
+from Jeremy Smart to All Attendees:    12:44  PM
+in perpetuity
+from Jeremy Smart to All Attendees:    12:45  PM
+Colin - we didn't get to discuss last look - probably just as well as people would have logged off but it was disappointing to see that some participants extended Last Look windows dramatically during the crisis
+from logan campbell to All Attendees:    12:46  PM
+i can say that we didn't Jeremy
+from Jeremy Smart to All Attendees:    12:46  PM
+the market has made a lot of progress towards eradicting or reducing LL hold times so it's disappointing to see it rear its head again just because there was "oppportunity"?
+from logan campbell to All Attendees:    12:47  PM
+we havent seen this much as a theme of convesation these weeks - and as i said we didnt legnthen last look times
+from Jeremy Smart to All Attendees:    12:47  PM
+Colin - Rohan's interview is really good btw
+from James O'Connor to All Attendees:    12:47  PM
+Agreed!
+from Jeremy Smart to All Attendees:    12:48  PM
+Logan - wasn't accusing you btw!!
+from Colin Lambert to All Attendees:    12:48  PM
+thank you - but its all about the interviewee, not the quesrtioner!
+from Jeremy Smart to All Attendees:    12:48  PM
+some participants did though....
+from Jeremy Smart to All Attendees:    12:48  PM
+ah colin - self deprecating as ever
+from Jeremy Smart to All Attendees:    12:49  PM
+Ah Des - didn't think Old Lady paid bonuses? :-)
+from Colin Lambert to All Attendees:    12:49  PM
+The last look is intersting, i think it highlights weaker LPs, want to see if there is payback when things get 'normal'
+from Richard Turer to All Attendees:    12:50  PM
+An interesting point for the FXGC group on disclosures....
+from Jeremy Smart to All Attendees:    12:50  PM
+well - i will def be raising it with clients but some clients i have spoken to are certainly ":frustrated" at least
+from Jeremy Smart to All Attendees:    12:50  PM
+they are also frustrated that those longer hold times often came with higher reject rates
+from Jeremy Smart to All Attendees:    12:51  PM
+probably not unsurprisingly
+from Jeremy Smart to All Attendees:    12:51  PM
+it's a little back to the idea that clients are really making those LPs short dated options for zero premium
+from Jeremy Smart to All Attendees:    12:51  PM
+:-)
+from Colin Lambert to All Attendees:    12:51  PM
+yep. i think i havs to jump to prep for the next session. Thanks guys - that was a great start to the day and we could have gone another 30!!
+from Jeremy Smart to All Attendees:    12:52  PM
+good points from rohan on CLS and forwards .....heart of the issue to moving to clearing and reducing risk
+from Jeremy Smart to All Attendees:    12:52  PM
+thanks Colin - lunch for rme
+from Jeremy Smart to All Attendees:    12:52  PM
+need to go to the cafe that is 12 feet from my study..... :-)
+*** Pre-record interview with BoE
+Rohan Churn Head of FX Division BoE
+
+FX spot has held up well compared to other markets.
+
+Other markets, forwards and Swaps, dollar funding stresses - dash for
+cash - particularly dollars. SNB, BoE, Fed, and BOJ coordinated on
+Swap lines - 400 billion usage of Swap lines.
+
+GFX statement 
+
+Triennial survey 
+- infrequent b
+Colin Lambert - Spot 
+
+Why FX Swaps grew
+Cross border-bank lending may have been cause of FX Swap market.
+
+Colin Lambert - Basis swap blow out
+
+CLS mentioned
+CLS ineligible pairs
+*** Session 2 - Infrastructure
+David Lyons - Chief Operating Officer Euronext FX
+Alan Schwarz - Co-founder and CEO FXSpotStream
+David Reid - Global Head of FX PB - Deutsche Bank
+
+AS - most important thing is to make sure they're up and available -
+record volumes - orders up 100%, messages up 300%.
+
+DL - Some of clients have struggled processing market data. 1.2
+millions quotes per second 40 billion per day.
+
+DR - 
+
+DL - Credit allocations had to be adjusted quickly.
+
+Lower fill rates across anonymous and disclosed fill rates
+Response times coming back in now
+Spreads coming back in now
+
+DR - Had good infrastructure
+
+AS - fill rates
+
+Wouldn't make bold predictions based on March. They've seen growth since 2015.
+
+97% - Before
+93% - March
+97% - Now
+
+*** Interview with David Mercer - CEO of LMAX
+Lack of risk appetite at start of Asian window.
+
+*** Session 3 - Volatilities comeback - stories from behind the lies
+John Ashworth - CEO Caplin Systems
+Richard Kiel - SVP, Head of FX Solutions
+Harpal Sandhu - CEO Integral Development
+
+JA - infrasture has been the hero this time
+
+HS - 
+
+*** A new liquidity Paradigm
+Asif Razaq - Global Head of FX Automated Client Execution - BNP Paribas
+Hugh Whelan - Head of Liquidity Management - EBS
+Phil Hermon - FX Products - CME Group
+
+HW - Deglobabilization following Covid could cause problems
+PH - JP Morgan Volatility index - very low in January - superhigh in March
+HW - ultimately global trade drives FX
+
+*** Session 5: A perspective - what does the FX market of the future look like
+Stephen R Flannagan - Global FX eCommerice Risk Manager
+Christopher Hock - Multi-Asset Trading, Union Investment Privatfond GmbH
+David Holcombe - Head of Product, FX Futures & Clearing - 360T
+Richard Turner - Senior Trader - Insight Investment
+
+SF - 7 top volume days at JP Morgan in last month
+CH - FX & Equities worked well. Fixed income had problems. Reduced dealer inventory - balance sheet
+RT - curate liquidity pools
+DH - 
+
+RT - 3 prices - spot, forward and balance sheet
+They trade under ISDA so peer to peer is a problem
+
+CH - KYC is also a problem for peer to peer
+
+SF - lots of passive orders - unexpected

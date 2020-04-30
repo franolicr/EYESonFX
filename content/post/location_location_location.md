@@ -15,9 +15,9 @@ expression to indicate that an FX trade may involve three locations:
 the location of the two counterparts, and, most importantly, where
 they come together to execute the trade, the trading venue.
 
-The majority of FX trades are
-executed electronically on different trading 'venues'. In this
-article, using monthly data published by the venues, I explore the
-distribution of activity across them and how it has evolved over time.
+The majority of FX trades are executed electronically on different
+trading 'venues'. In this article, using monthly data published by the
+venues, I explore the distribution of activity across them and how it
+has evolved over time.
 
 <!--more-->

@@ -7,7 +7,7 @@ tags = ["When"]
 draft = false
 +++
 
-{{< figure src="/ox-hugo/catch_up_with_the_sun.gif" >}}
+{{< figure src="/ox-hugo/catch_up_with_the_sun.svg" >}}
 
 Like the lyrics from Pink Floyd's famous song 'Time', the 24 hour FX
 market is often said to 'chase the sun'. In this blog, using more than
@@ -15,21 +15,3 @@ market is often said to 'chase the sun'. In this blog, using more than
 critical impact on the FX market.
 
 <!--more-->
-
-
-## Read in and summarise data {#read-in-and-summarise-data}
-
--   Time of year
--   Time of month
--   The working week
--   Time of the day
--   Intra-hour
-
-
-## Analyse data {#analyse-data}
-
--   Time of year
--   Time of month
--   The working week
--   Time of the day
--   Intra-hour
