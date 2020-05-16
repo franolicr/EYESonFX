@@ -13,19 +13,31 @@
 
 ** For posts
 #+BEGIN_SRC R :eval yes
+  if("ggplot2" %in% rownames(installed.packages()) == FALSE) {install.packages("ggplot2")}
   library( ggplot2)
+  if("png" %in% rownames(installed.packages()) == FALSE) {install.packages("png")}
   library( png)
+  if("hms" %in% rownames(installed.packages()) == FALSE) {install.packages("hms")}
   library( hms)
+  if("bizdays" %in% rownames(installed.packages()) == FALSE) {install.packages("bizdays")}
   library( bizdays)
+  if("gridExtra" %in% rownames(installed.packages()) == FALSE) {install.packages("gridExtra")}
   library( gridExtra)
+  if("timeDate" %in% rownames(installed.packages()) == FALSE) {install.packages("timeDate")}
   library( timeDate)
+  if("grid" %in% rownames(installed.packages()) == FALSE) {install.packages("grid")}
   library( grid)
-  library( animation)
+  #library( animation)
+  if("showtext" %in% rownames(installed.packages()) == FALSE) {install.packages("showtext")}
   library( showtext)
+  if("readxl" %in% rownames(installed.packages()) == FALSE) {install.packages("readxl")}
   library( readxl)
+  if("gridSVG" %in% rownames(installed.packages()) == FALSE) {install.packages("gridSVG")}
   library( gridSVG)
-  library( animaker)
+  #library( animaker)
+  if("gtools" %in% rownames(installed.packages()) == FALSE) {install.packages("gtools")}
   library( gtools)
+  if("ggrepel" %in% rownames(installed.packages()) == FALSE) {install.packages("ggrepel")}
   library( ggrepel)
 
   # Working directory
@@ -136,6 +148,343 @@ the motivations for trading in the FX market, by answering the
 question why is FX traded? Unlike the lyrics, the profit motive is not
 necessarily the primary driver.
 #+hugo: more
+
+** Spreads
+*** Load data
+#+BEGIN_SRC R
+  # Parallelize read of files 
+  library( parallel)
+  m$p$clstr <- makeCluster( detectCores()- 1, type= "FORK")
+
+  m$p$crncs <- c( 'AUDJPY', 'AUDNZD', 'AUDUSD', 'CADJPY', 'CHFJPY', 'EURCHF',
+  'CHFJPY', 'EURCHF', 'EURGBP', 'EURJPY', 'EURUSD', 'GBPJPY', 'GBPUSD', 'NZDUSD',
+  'USDCAD', 'USDCHF', 'USDJPY')
+
+  m$p$mnths <- c( '2020-04', '2020-03', "2020-02", "2020-01")
+
+  m$p$crncs <- as.data.table( t( as.matrix( merge( m$p$mnths, m$p$crncs))))
+
+  m$i$rts <- rbindlist( parLapply( m$p$clstr, X= m$p$crncs,
+				  fun= function( x, mnth= m$p$mnth){
+				      print( paste( 'unzip -p ',
+						     '~/Dnk/Srcs/Tr_FX/Extrct/Hstr/',
+						     x[2], '-', x[1], '.zip',
+						     sep= ''))
+				   tmp <- fread( cmd= paste( 'unzip -p ',
+						     '~/Dnk/Srcs/Tr_FX/Extrct/Hstr/',
+						     x[2], '-', x[1], '.zip',
+						     sep= ''))
+				   # Setnames
+				   setnames( tmp, c( 'crnc', 'tm', 'bd', 'ask'))
+				   # Set time
+				   tmp[ , tm:= fastPOSIXct( paste( substr( tm, 1,4), '-', substr( tm, 5, 6), '-',
+								  substr( tm, 7, 8), ' ', substr( tm, 10, 21), sep= ''))]
+				   # Summarise by hour
+				   tmp[ , .( crnc, tm, md= ( bd + ask)/2, sprd= ( ask- bd)/ (bd + ask)/2 )][
+				     , .( mx_md= max( md), mn_md= min( md), avg_md= mean( md), sd_md= sd( md)/ mean( md),
+					 avg_sprd= mean( sprd), .N),
+				       .( crnc, tm= as.POSIXct( 5* 60* floor( as.numeric( tm)/( 5* 60)), origin = "1970-01-01"))]
+			       }
+			       ))
+
+  stopCluster( m$p$clstr)
+#+END_SRC
+*** Display - animate by moving rectangles - WORKED NICELY         :noexport:
+
+#+BEGIN_SRC R
+  if( "DescTools" %in% rownames(installed.packages()) == FALSE) {install.packages("DescTools")}
+  library( DescTools)
+
+  # Spreads at 22:00 massively widen confusing the picture - set them to NA
+  m$x$rts <- m$i$rts[ wday( tm) != 1] # & hour( tm) != 22:00]
+
+  m$x$rts <- m$x$rts[ !is.na( avg_sprd) & wday( tm)!= 1,
+			.( sprd= mean( avg_sprd), sd= mean( sd_md), N= mean( N)),
+			.( tm= floor_date( tm, "4 hour"), crnc)]
+
+  m$x$rts[ , `:=`( dy= wday( tm), hr= hour( tm))]
+  setkeyv( m$x$rts, c( "crnc", "dy", "hr"))
+
+  # Use average spread in January for hour and day of week as base for comparison
+  m$o$rts <- m$x$rts[ month( tm)== 1, .( sprd= mean( sprd), sd= mean( sd), N= mean( N)), .( crnc, dy, hr)][
+		     m$x$rts, on= c( "crnc", "dy", "hr")][
+		   , .( crnc, tm, wk= isoweek( tm), dy, hr,
+		       sprd= i.sprd, jnry_sprd= sprd, rltv_sprd= i.sprd/ sprd,
+		       sd= i.sd, jnry_sd= sd, rltv_sd= i.sd/ sd,
+		       N= i.N, jnry_N= N, rltv_N= i.N/ N- 1)]
+
+  m$o$rts <- m$o$rts[ order( crnc, tm)][ month( tm)!= 1]
+  m$o$rts[ , `:=`( crnc= factor( crnc,
+				levels= m$o$rts[ , .( sprd= mean( rltv_sprd)), crnc][ order( sprd), crnc]))]
+
+  m$o$rts[ , `:=`( x= .I- min( .I) + 1), .( crnc)]
+  m$o$rts[ , `:=`( y= as.numeric(  crnc))]
+
+  m$p$brks <- c( 0, 0.5, 0.75, 1.25, 2.5, 5, 9999)
+  m$o$rts[ , `:=`( lvl= cut( rltv_sprd, breaks= m$p$brks,
+			    labels= c( "< 0.5X", "< 0.75X", "0.75-1.25X", ">1.25X", ">2.5X", ">5X"), right= FALSE))]
+  m$o$rts[ , `:=`( fll= ifelse( as.numeric( lvl)== 3, "grey", NA))]
+  m$o$rts[ is.na( fll) & as.numeric( lvl)< 3, `:=`( fll= MixColor( "white", m$p$clr$grn, amount1= as.numeric( lvl)/3))]
+  m$o$rts[ is.na( fll) & as.numeric( lvl)> 3, `:=`( fll= MixColor( "white", m$p$clr$rd, amount1= ( 6- as.numeric( lvl))/3))]
+
+  # Commnent out for full run
+  #m$o$rts <- m$o$rts[ x > 200 & x < 300]
+
+  lapply( dev.list(), dev.off)
+
+  quartz( width= 1.25* 5, height= 1.25* 5)
+  m$o$cmnts <- rbindlist( list(
+      data.table( x= 65, y= 10.5, clr= MixColor( "white", m$p$clr$rd, amount1= 1/3), wdth= 30,
+		 lbl= "Spreads first widen, temporarily, at London close on 17-Feb"),
+      data.table( x= 119, y= 8.5, clr= MixColor( "white", m$p$clr$rd, amount1= 1/3), wdth= 26,
+		 lbl= "Spreads widen again, at London close on Fri 28-Feb"),
+      data.table( x= 151, y= 10.5, clr= m$p$clr$rd, wdth= 32,
+		 lbl= "Most spreads more than 2.5 times normal, at start of Mon 09-Mar"),
+      data.table( x= 172, y= 8.5, clr= m$p$clr$rd, wdth= 27,
+		 lbl= "... and all at 2.5X, by London afternoon of Thu 12-Mar"),
+      data.table( x= 180, y= 6.5, clr= m$p$clr$rd, wdth= 24,
+		 lbl= "All, except GBPUSD, reach 5X at close of week"),
+      data.table( x= 210, y= 10.5, clr= m$p$clr$rd, wdth= 21,
+		 lbl= "ALL at 5X or above, at close of next week"),
+      data.table( x= 240, y= 8.5, clr= m$p$clr$rd, wdth= 21,
+		 lbl= "Now familiar, re-widening at close of week"),
+      data.table( x= 294, y= 10.5, clr= m$p$clr$rd, wdth= 31,
+		 lbl= "Pervasive widening on Thursday before long Easter weekend"),
+      data.table( x= 348, y= 7.5, clr= MixColor( "white", m$p$clr$grn, amount1= 1/3), wdth= 18,
+		 lbl= "Signs of narrowing back to normal"),
+      data.table( x= 356, y= 10.5, clr= MixColor( "white", m$p$clr$rd, amount1= 1/3), wdth= 21,
+		 lbl= "... but still wider than normal at April end")))
+
+  m$o$plt <- ggplot( data= m$o$rts) + 
+      geom_tile( mapping= aes( x= x, y= y, fill= I( fll)), colour= NA) +
+  #    scale_fill_gradient2( low= m$p$clr$grn, high= m$p$clr$rd, mid= "grey", midpoint= 0) +
+      geom_text( data= function(x) x[ , .( x= min( x)), .( y, crnc)],
+		mapping= aes( x= x, y= y, label= crnc), hjust= 0, size= 5, fontface= "bold") +
+      geom_text( data= function(x) x[ , .( y= min( y), x= min( x)), .( tm= floor_date( tm, "day"))],
+		mapping= aes( x= x, y= y- 0.75, label= strftime( tm, "%d %b")), hjust= 0, vjust= 1) +
+  #    geom_segment( data= function(x) x[ , .( y= min( y), x= min( x)), .( tm= floor_date( tm, "day"))],
+  #	      mapping= aes( x= x, xend= x, y= y- 0.75, yend= 16), colour= "black") +
+      coord_cartesian( xlim= c( m$o$rts[ , min( x)], m$o$rts[ , min( x)] + 5* 6)) +
+      scale_y_continuous( limits= c( -2, 16)) +
+      geom_rect( data= m$o$cmnts,
+		mapping= aes( xmin= x, xmax= x+ wdth, ymin= y- 0.5, ymax= y+ .5, fill= I( clr)),
+		colour= "white") +
+      geom_text( data= m$o$cmnts,
+		mapping= aes( x= x, y= y, label= lbl),
+		colour= "white", hjust= 0, size= 5, fontface= "bold") +
+      geom_rect( data= m$o$rts[ order( lvl), .( fll= max( fll)), lvl][ , .( I= 5* .I- 2, fll, lvl)],
+		mapping= aes( xmin= I, xmax= I+ 4, fill= I( fll)), ymin= -2, ymax= -1) + 
+      geom_text( data= m$o$rts[ order( lvl), .( fll= max( fll)), lvl][ , .( I= 5* .I- 2, fll, lvl)],
+		mapping= aes( x= I+ 2, label= lvl), y= -1.5) + 
+      theme_void() +
+	theme( plot.background= element_rect( fill= "grey95", colour= NA),
+	      panel.background= element_rect( fill= "grey95", colour= NA),
+	      legend.position = "none")
+
+  m$f$plt( plt= m$o$plt, ttl= "Pandemic FX Spreads",
+	    sbttl= "Bid/offer spreads, as multiple of Jan 2020 average for time of week",
+	    src= "")
+
+  grid.force()
+  m$p$rcts <- lapply( grep( "geom_rect", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$txts  <- lapply( grep( "GRID.text", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$icn <- lapply( grep( "GRID.rastergrob", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[[1]]
+
+
+  # Dummy animation to coordinate timing of other animations
+  grid.animate( m$p$icn$name, visibility= c( "visible", "visible"),
+		 begin= "0;anmtn_dmy_id.end", duration= 45)
+
+  # 
+  lapply( m$p$txts[ 2:3], function( x)
+      grid.animate( x$name,
+	       x= animUnit( x= unit( c( as.numeric( x$x), as.numeric( x$x) -
+								      ( max( as.numeric( m$p$rcts[[1]]$x))- 1)), "native"),
+			   id= c( seq_along( x$x), seq_along( x$x))),
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 45))
+
+  lapply( m$p$rcts[ 1:2], function( x)
+      grid.animate( x$name,
+	       x= animUnit( x= unit( c( as.numeric( x$x), as.numeric( x$x) -
+								      ( max( as.numeric( m$p$rcts[[1]]$x))- 1)), "native"),
+			   id= c( seq_along( x$x), seq_along( x$x))),
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 45))
+
+  m$f$sv_svg( "~/eyesonfx/content-org/spreads.svg")
+
+
+#+END_SRC
+*** Display - animate by change of colour - STOPPED                :noexport:
+
+#+BEGIN_SRC R
+  # Spreads at 22:00 massively widen confusing the picture - set them to NA
+  m$x$rts <- m$i$rts[ wday( tm) != 1] # & hour( tm) != 22:00]
+
+  m$x$rts <- m$x$rts[ !is.na( avg_sprd) & wday( tm)!= 1,
+			.( sprd= mean( avg_sprd), sd= mean( sd_md)),
+			.( tm= floor_date( tm, "4 hour"), crnc)]
+
+  m$x$rts[ , `:=`( dy= wday( tm), hr= hour( tm))]
+  setkeyv( m$x$rts, c( "crnc", "dy", "hr"))
+
+  # Use average spread in January for hour and day of week as base for comparison
+  m$o$rts <- m$x$rts[ month( tm)== 1, .( sprd= mean( sprd), sd= mean( sd)), .( crnc, dy, hr)][
+		     m$x$rts, on= c( "crnc", "dy", "hr")][
+		   , .( crnc, tm, wk= isoweek( tm), dy, hr,
+		       sprd= i.sprd, jnry_sprd= sprd, rltv_sprd= i.sprd/ sprd- 1,
+		       sd= i.sd, jnry_sd= sd, rltv_sd= i.sd/ sd- 1)]
+
+  # Spreads at 22:00 massively widen confusing the picture - set them to NA
+
+
+  lapply( dev.list(), dev.off)
+
+
+  quartz( width= 1.25 * 5, height= 1.25 * 5)
+
+  # first plot to get colours
+  ggplot( data= m$o$rts) + 
+      geom_tile( mapping= aes( x= tm, y= crnc, fill= rltv_sprd), colour= NA) +
+      scale_fill_gradient2( low= m$p$clr$grn, high= m$p$clr$rd, mid= "grey", midpoint= 2)
+  grid.force()
+  m$p$rcts  <- lapply( grep( "geom_rect", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+
+  m$o$rts[ , fll:= m$p$rcts[[1]]$gp$fill]
+
+  quartz( width= 1.25 * 5, height= 1.25 * 5)
+
+  m$o$plt <- ggplot( data= m$o$rts[ wk==10]) + 
+      geom_tile( mapping= aes( x= tm, y= crnc, fill= I(fll)), colour= NA)
+
+  m$f$plt( plt= m$o$plt, ttl= "FX Spreads During the Covid-19 Pandemic",
+	    sbttl= "Euromoney FX Survey rankings and market shares each year",
+	    src= "")
+
+  grid.force()
+  m$p$rcts  <- lapply( grep( "geom_rect", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)
+  m$p$icn <- lapply( grep( "GRID.rastergrob", grid.ls( flatten= TRUE, print= FALSE)$name, value= TRUE), grid.get)[[1]]
+
+  # Dummy animation to coordinate timing of other animations
+  grid.animate( m$p$icn$name, visibility= c( "visible", "visible"),
+		 begin= "0;anmtn_dmy_id.end", duration= 35)
+
+  # hide everything initially
+  grid.animate( m$p$rcts[[1]]$name,
+	       fill= anim.value= "hidden",
+	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 2, interpolate= "discrete")
+
+#+END_SRC
+*** Spread 2
+#+BEGIN_SRC R
+  lapply( dev.list(), dev.off)
+
+  qplot( data= m$i$rts[ hour( tm) != 22 & wday( tm)!= 1, 
+		       .( sprd= mean( avg_sprd),
+			 sprd3= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
+		       .( crnc)],
+	x= sprd3, y= sprd) +
+      geom_text( mapping= aes( label= crnc))
+
+
+  quartz()
+  qplot( data= m$i$rts[ hour( tm) != 22 & wday( tm)!= 1 & month( tm)== 2, 
+		       .( sprd= mean( avg_sprd),
+			 sprd1= sd( log( avg_md/ shift( avg_md)), na.rm= T),
+			 sprd2= sd( log( avg_md/ shift( avg_md)), na.rm= T)/ sqrt( sum( N))),
+		       .( crnc)],
+	x= sprd2, y= sprd) +
+      annotate( x= 0, y= 0, geom= "text", label= "") +
+      geom_text( mapping= aes( label= crnc), hjust= 1)
+
+
+
+  qplot( data= m$i$rts[ crnc== "EUR/USD" & wday( tm)!= 1, 
+		       .( sprd= mean( avg_sprd),
+			 sprd3= sd( log( avg_md/ shift( avg_md)), na.rm= T)/ sqrt( sum( N)) ),
+		       .( tm= floor_date( tm, "hour"), wkdy= wday( tm), hr= hour( tm), crnc)][
+			  ! floor_date( tm) %in% as.POSIXct( c( '2020-01-01', '2020-04-10',
+						       '2020-05-01'))],
+	x= sprd3, y= sprd, alpha= I( 0.25)) + facet_grid( wkdy ~ hr)
+
+  qplot( data= m$i$rts[ crnc== "GBP/JPY" & wday( tm)!= 1, 
+		       .( sprd= mean( avg_sprd),
+			 sprd3= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
+		       .( tm= floor_date( tm, "day"), crnc)][
+			  ! floor_date( tm) %in% as.POSIXct( c( '2020-01-01', '2020-04-10',
+						       '2020-05-01'))],
+	x= sprd3, y= sprd) + geom_text( mapping= aes( label= tm))
+
+
+  # Spread as function of volume, decreases initially but then increases
+  qplot( data= m$i$rts[ crnc== "EUR/USD" & wday( tm)!= 1, # & month( tm) ==4, 
+		       .( sprd= mean( avg_sprd), N= sum( N)),
+		       .( floor_date( tm, "1 hour"))][
+		     , .( sprd= mean( sprd)),
+		       .( vlm= cut( N, breaks= 20, labels= FALSE, ordered_result= T))][
+		      order( vlm)],
+	x= vlm, y= sprd, geom= "line")
+
+
+  qplot( data= m$i$rts[ crnc== "EUR/USD" & wday( tm)!= 1, # & month( tm) ==4, 
+		       .( sprd= mean( avg_sprd), vlm= sum( N),
+			 sd= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
+		       .( floor_date( tm, "1 hour"))],
+	x= vlm, y= sd, geom= "point")
+
+  qplot( data= m$i$rts[ crnc== "EUR/USD" & wday( tm)!= 1, # & month( tm) ==4, 
+		       .( sprd= mean( avg_sprd), vlm= sum( N),
+			 sd= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
+		       .( floor_date( tm, "1 hour"))],
+	x= sd, y= sprd, geom= "point")
+
+  qplot( data= m$i$rts[ crnc== "EUR/USD" & wday( tm)!= 1, # & month( tm) ==4, 
+		       .( sprd= mean( avg_sprd), vlm= sum( N),
+			 sd= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
+		       .( floor_date( tm, "1 hour"))],
+	x= vlm, y= sprd, geom= "point")
+
+  qplot( data= m$i$rts[ month( tm)!= 5, # & wday( tm)!= 1, # & month( tm) ==4, 
+		       .( sprd= mean( avg_sprd), vlm= sum( N), rgm= month( tm),
+			 wknd= wday( tm)== 6 & hour( tm)>= 20,
+			 sd= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
+		       .( crnc, tm= floor_date( tm, "1 hour"))],
+	x= log( sprd/ sqrt( vlm)), y= log( sprd), geom= "point", alpha= I(0.5),
+	colour= factor( floor(hour( tm)/8)), size= wknd) +
+      facet_grid( rgm ~ crnc)
+
+
+  # Time series of spread
+  qplot( data= m$i$rts[ as.Date( tm)== as.Date( "2020-02-17"), 
+		       .( avg_sprd, tm, crnc)],
+	x= tm, y= avg_sprd, geom= "line") +
+  facet_wrap( facets= "crnc") + scale_x_datetime( date_breaks= "2 hour", date_labels= "%H")
+
+
+  m$x$rts <- m$i$rts[ order( crnc, tm)][
+		     crnc== "EUR/USD" & month( tm) < 3 & hour( tm) != 22,
+		       .( h22= hour( tm)== 22, sprd= mean( avg_sprd), vlm= sum( N),
+			 sd= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
+		     .( tm= floor_date( tm, "1 hour"))][, 
+					.( tm, h22, sprd, sd, vlm, sprd1= sd / sqrt( vlm))]
+
+  m$f$lm <- lm( data= m$x$rts, formula= log( sprd) ~ log( sd) + log( vlm))
+  m$f$lm <- lm( data= m$x$rts, formula= sprd ~ sprd1)
+
+  summary( m$f$lm)
+
+  m$o$rts <- m$x$rts
+  m$o$rts[ , sprd1:= m$f$lm$fitted.values]
+
+  qplot( data= m$o$rts[ , .( tm, sprd, sprd1, dt= floor_date( tm, "1 day"), wk= isoweek( tm))],
+	x= tm, y= log( sprd), geom= "line") +
+      geom_line( mapping= aes( x= tm, y= log( sprd1)), colour= m$p$clr$rd, geom= "line") +
+      facet_wrap( facets= "dt", scales= "free_x", ncol= 15)
+
+  qplot( data= m$x$rts[ sprd < 1.5e-5], x= vlm, y= sprd, alpha= I(0.1), group= date( tm), geom= "point")
+
+  qplot( data= m$x$rts[ sprd < 1.5e-5], x= sd, y= sprd, alpha= I(0.1), group= date( tm), geom= "point")
+
+#+END_SRC
 
 ** 'So you run and you run to catch up with the sun'                   :When:
 SCHEDULED: <2020-03-05 Thu>   
@@ -1134,14 +1483,14 @@ Concentration within the FX market
 	       x= c( ( 2010:2019- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
 	       xend= c( ( 2010:2019- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
 	       colour= "white", y= c( rep( 0, 15)), yend= -17) +
-      annotate( geom= "text", x= c( 0.05, 0.7), y= c( .5, .5), hjust= 0,
-	       label= c( "Rank", "Market Share"), size= 5) + 
+      annotate( geom= "text", x= c( .3), y= c( 1), hjust= .5,
+	       label= c( "Rank"), size= 5) + 
   #    annotate( geom= "text", x= c( seq( 2010, 2018, 2)- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
   #             y= rep( 0, 10), label= c( paste0( "'", seq( 10, 18, 2)), paste0( seq( 0, 20, 5), "%")),
   #             hjust= 0.25) +
-      annotate( geom= "text", x= c( ( c( 2010, 2019)- 2009)/ 10 * .5, 0.7 + seq( 0, .2, .05)/ .2),
+      annotate( geom= "text", x= c( ( c( 2010, 2019)- 2009)/ 10 * .5- .05, 0.7 + seq( 0, .2, .05)/ .2),
 	       y= rep( 0, 7), label= c( "2010", "2019", paste0( seq( 0, 20, 5), "%")),
-	       hjust= 0.25) +
+	       hjust= 0) +
       geom_point( mapping= aes( x= rnk_x, y= y, fill= rnk, shape= I( shp), alpha= I( alph)+ 0.5),
 		 size= 7) +
       geom_text( mapping= aes( x= rnk_x, y= y, label= rnk, alpha= I( alph)), size= 4.5) +
@@ -1150,13 +1499,13 @@ Concentration within the FX market
       geom_text( mapping= aes( x= shr_x, y= y, label= rnk, alpha= I( alph)), size= 4) +
       scale_fill_gradient2( low= m$p$clr$grn, mid= "white", high= m$p$clr$rd,
 			   midpoint= 5) +
-      scale_x_continuous( limits= c( -.6, 1.72)) +
-      scale_y_continuous( limits= c( -17, 1)) +
+      scale_x_continuous( limits= c( -.7, 1.72)) +
+      scale_y_continuous( limits= c( -17, 2)) +
       geom_text( data= function( x) x[ , .N, .( y, lp)],
 		mapping= aes( y= y, label= lp), size= 5, x= -.02, hjust= 1) + 
       geom_text( data= function( x) x[ , .N, yr],
 		mapping= aes( label= paste0( "Market Share - ", yr)),
-			     x= 0.7, y= .5, hjust= 0, size= 5) +
+			     x= .85, y= 1, hjust= 0, size= 5) +
       theme_void() +
       theme( plot.background= element_rect( fill= "grey95", colour= NA),
 	    panel.background= element_rect( fill= "grey95", colour= NA),
@@ -1228,7 +1577,7 @@ Concentration within the FX market
 	       begin= paste0( "anmtn_dmy_id.begin+", 3* i+ 2), duration= 1, interpolate= "discrete")
   grid.animate( m$p$rnks[[2]]$name,
 	       visibility= animValue(
-					 x=  ifelse( 1:length(m$p$msk) %in%
+			 x=  ifelse( 1:length(m$p$msk) %in%
 							( 1:length( m$p$lps$lp) + length( m$p$lps$lp) * i),
 							"visible", "hidden"),
 					 id= rep( 1:160, 1)),
