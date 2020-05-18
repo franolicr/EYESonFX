@@ -149,8 +149,14 @@ question why is FX traded? Unlike the lyrics, the profit motive is not
 necessarily the primary driver.
 #+hugo: more
 
-** Spreads
-*** Load data
+** Pandemic FX Spreads
+   SCHEDULED: <2020-05-05 Fri>
+:PROPERTIES:
+:EXPORT_FILE_NAME: pandemic_fx_spreads
+:END:
+file:pandemic_fx_spreads.svg
+An illustration of the impact of the Covid pandemic on bid / offer FX Spreads.
+*** Load data :noexport:
 #+BEGIN_SRC R
   # Parallelize read of files 
   library( parallel)
@@ -374,20 +380,69 @@ necessarily the primary driver.
 	       begin= paste0( "anmtn_dmy_id.begin+", 0), duration= 2, interpolate= "discrete")
 
 #+END_SRC
-*** Spread 2
+
+** Spread2 
+*** Load data
+#+BEGIN_SRC R
+  # Parallelize read of files 
+  library( parallel)
+  m$p$clstr <- makeCluster( detectCores()- 1, type= "FORK")
+
+  m$p$crncs <- c( 'AUDJPY', 'AUDNZD', 'AUDUSD', 'CADJPY', 'CHFJPY', 'EURCHF',
+  'CHFJPY', 'EURCHF', 'EURGBP', 'EURJPY', 'EURUSD', 'GBPJPY', 'GBPUSD', 'NZDUSD',
+  'USDCAD', 'USDCHF', 'USDJPY')
+
+  m$p$mnths <- c( '2020-04', '2020-03', "2020-02", "2020-01")
+
+  m$p$crncs <- as.data.table( t( as.matrix( merge( m$p$mnths, m$p$crncs))))
+
+  m$i$trfx_rts <- rbindlist( parLapply( m$p$clstr, X= m$p$crncs, 
+				  fun= function( x, mnth= m$p$mnth){
+				      print( paste( 'unzip -p ',
+						     '~/Dnk/Srcs/Tr_FX/Extrct/Hstr/',
+						     x[2], '-', x[1], '.zip',
+						     sep= ''))
+				   tmp <- fread( cmd= paste( 'unzip -p ',
+						     '~/Dnk/Srcs/Tr_FX/Extrct/Hstr/',
+						     x[2], '-', x[1], '.zip',
+						     sep= ''))
+				   # Setnames
+				   setnames( tmp, c( 'crnc', 'tm', 'bd', 'ask'))
+				   # Set time
+				      tmp[ , tm:= fastPOSIXct( paste( substr( tm, 1,4), '-',
+								     substr( tm, 5, 6), '-',
+								     substr( tm, 7, 8), ' ',
+								     substr( tm, 10, 21), sep= ''))]
+				   # Summarise by minute
+				      tmp[ , .( crnc, tm, md= ( bd + ask)/2,
+					       sprd= ask- bd,
+					       rltv_sprd= ( ask- bd)/ (bd + ask)/2 )][
+					, .( mx_md= max( md), mn_md= min( md),
+					    avg_md= mean( md), sd_md= sd( md)/ mean( md),
+					    avg_rltv_sprd= mean( rltv_sprd), avg_sprd= mean( sprd),
+					    lst_sprd= max( fifelse( .I== max( .I), sprd, 0)), .N),
+					  .( crnc, tm= as.POSIXct( 60* floor( as.numeric( tm)/ 60),
+								  origin = "1970-01-01"))]
+			       }
+			       ))
+
+  stopCluster( m$p$clstr)
+#+END_SRC
+*** Model
 #+BEGIN_SRC R
   lapply( dev.list(), dev.off)
 
-  qplot( data= m$i$rts[ hour( tm) != 22 & wday( tm)!= 1, 
-		       .( sprd= mean( avg_sprd),
+  qplot( data= m$i$rts[ hour( tm) != 22 & wday( tm)!= 1,
+		       .( sprd= mean( avg_sprd), 
 			 sprd3= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
-		       .( crnc)],
+		       .( crnc, mnth= month( tm))],
 	x= sprd3, y= sprd) +
-      geom_text( mapping= aes( label= crnc))
+      geom_text( mapping= aes( label= crnc)) +
+      facet_wrap( "mnth", scales= "free")
 
 
   quartz()
-  qplot( data= m$i$rts[ hour( tm) != 22 & wday( tm)!= 1 & month( tm)== 2, 
+  qplot( data= m$i$rts[ hour( tm) != 22 & wday( tm)!= 1, 
 		       .( sprd= mean( avg_sprd),
 			 sprd1= sd( log( avg_md/ shift( avg_md)), na.rm= T),
 			 sprd2= sd( log( avg_md/ shift( avg_md)), na.rm= T)/ sqrt( sum( N))),
@@ -406,7 +461,7 @@ necessarily the primary driver.
 						       '2020-05-01'))],
 	x= sprd3, y= sprd, alpha= I( 0.25)) + facet_grid( wkdy ~ hr)
 
-  qplot( data= m$i$rts[ crnc== "GBP/JPY" & wday( tm)!= 1, 
+  qplot( data= m$i$rts[ crnc== "GBP/JPY" & month( tm) <= 2 & wday( tm)!= 1, 
 		       .( sprd= mean( avg_sprd),
 			 sprd3= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
 		       .( tm= floor_date( tm, "day"), crnc)][
@@ -443,14 +498,47 @@ necessarily the primary driver.
 		       .( floor_date( tm, "1 hour"))],
 	x= vlm, y= sprd, geom= "point")
 
+
+  qplot( data= m$i$rts[ crnc== "EUR/USD" & wday( tm)!= 1, # & month( tm) ==4, 
+		       .( sprd= mean( avg_sprd), vlm= sum( N), rgm= month( tm),
+			 wknd= wday( tm)== 6 & hour( tm)>= 20,
+			 sd= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
+		       .( crnc, tm= floor_date( tm, "1 hour"))],
+	x= log( sd/ sqrt( vlm)), y= log( sprd), geom= "point", alpha= I(0.5),
+	colour= factor( floor(hour( tm)/8)), size= wknd) +
+      facet_wrap( "rgm", ncol= 4)
+
   qplot( data= m$i$rts[ month( tm)!= 5, # & wday( tm)!= 1, # & month( tm) ==4, 
 		       .( sprd= mean( avg_sprd), vlm= sum( N), rgm= month( tm),
 			 wknd= wday( tm)== 6 & hour( tm)>= 20,
 			 sd= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
 		       .( crnc, tm= floor_date( tm, "1 hour"))],
-	x= log( sprd/ sqrt( vlm)), y= log( sprd), geom= "point", alpha= I(0.5),
+	x= log( sd/ sqrt( vlm)), y= log( sprd), geom= "point", alpha= I(0.5),
 	colour= factor( floor(hour( tm)/8)), size= wknd) +
       facet_grid( rgm ~ crnc)
+
+
+  m$x$rts <- m$i$rts[ month( tm)!= 5, # & wday( tm)!= 1, # & month( tm) ==4, 
+		       .( sprd= mean( avg_sprd), vlm= sum( N), rgm= month( tm),
+			 wknd= wday( tm)== 6 & hour( tm)>= 20,
+			 sd= sd( log( avg_md/ shift( avg_md)), na.rm= T)),
+	  .( crnc, tm= floor_date( tm, "1 hour"))]
+
+
+  m$x$rts[ , `:=`( lg_sprd0= log( sprd), lg_sprd1= log( sprd/ sqrt( vlm)))]
+
+  m$f$lm <- lm( data= m$x$rts, formula= lg_sprd0 ~ lg_sprd1)
+
+  summary( m$f$lm)
+
+  m$o$rts <- m$x$rts[ order( tm)]
+  m$o$rts[ , sprd1:= m$f$lm$fitted.values]
+
+  qplot( data= m$o$rts[ , .( tm, sprd, sprd1, dt= floor_date( tm, "1 day"), wk= isoweek( tm))],
+	x= tm, y= log( sprd), geom= "line") +
+      geom_line( mapping= aes( x= tm, y= log( sprd1)), colour= m$p$clr$rd, geom= "line") +
+      facet_wrap( facets= "dt", scales= "free_x", ncol= 15)
+
 
 
   # Time series of spread

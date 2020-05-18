@@ -9,9 +9,9 @@ draft = false
 
 {{< figure src="/ox-hugo/catch_up_with_the_sun.svg" >}}
 
-Like the lyrics from Pink Floyd's famous song 'Time', the 24 hour FX
+Like the lyrics from Pink Floyd's famous track 'Time', the 24 hour FX
 market is often said to 'chase the sun'. In this blog, using more than
-70 billion data points, I show X different ways in which time has a
-critical impact on the FX market.
+5 million data points, I show four different ways in which time plays a
+critical role in currency markets.
 
 <!--more-->

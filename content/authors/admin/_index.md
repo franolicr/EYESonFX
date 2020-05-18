@@ -75,7 +75,7 @@ email: "rfranolic@eyesonfx.com"
 #- Visitors
 ---
 
-I am a very experienced quantitative analytics manager.
+I am a very experienced head of quantitative analytics.
 
 Combining a rare set of skills - deep FX market knowledge, advanced
 data technology expertise and cutting edge quantitative/analytical

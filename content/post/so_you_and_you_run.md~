@@ -7,7 +7,7 @@ tags = ["When"]
 draft = false
 +++
 
-{{< figure src="/ox-hugo/catch_up_with_the_sun.gif" >}}
+{{< figure src="/ox-hugo/catch_up_with_the_sun.svg" >}}
 
 Like the lyrics from Pink Floyd's famous song 'Time', the 24 hour FX
 market is often said to 'chase the sun'. In this blog, using more than
